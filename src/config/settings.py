@@ -37,6 +37,12 @@ class Settings(BaseSettings):
     temporal_port: int = 7233
     temporal_namespace: str = "default"
 
+    # JWT / Auth
+    jwt_secret: str = "dev-secret-change-in-prod"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 7
+
     class Config:
         env_prefix = "COCO_"
         env_file = ".env"
