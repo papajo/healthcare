@@ -1,0 +1,666 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crisiscost.health/schemas/provider-api/f04-encounter-intake-request.schema.json",
+  "title": "ProviderEncounterIntakeRequest",
+  "description": "Provider API F-04 intake payload for real-time urgency classification and billing code analysis.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "provider",
+    "encounter",
+    "patient",
+    "clinical_context",
+    "billing_context"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.3.0"
+    },
+    "request_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Client-generated idempotency key for deduplication."
+    },
+    "trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "trace_id": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "span_id": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "source_system": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "source_message_id": {
+          "type": "string",
+          "maxLength": 128
+        }
+      }
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_organization_id",
+        "facility_id",
+        "facility_type",
+        "ehr_vendor"
+      ],
+      "properties": {
+        "provider_organization_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "facility_id": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "facility_type": {
+          "type": "string",
+          "enum": [
+            "ACUTE_CARE_HOSPITAL",
+            "CRITICAL_ACCESS_HOSPITAL",
+            "FREESTANDING_ED",
+            "URGENT_CARE",
+            "AMBULATORY_SURGERY_CENTER",
+            "INPATIENT_HOSPITAL",
+            "OUTPATIENT_HOSPITAL"
+          ]
+        },
+        "department_code": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "ehr_vendor": {
+          "type": "string",
+          "enum": [
+            "EPIC",
+            "CERNER",
+            "MEDITECH",
+            "ALLSCRIPTS",
+            "ATHENAHEALTH",
+            "NEXTGEN",
+            "OTHER"
+          ]
+        },
+        "npi": {
+          "type": "string",
+          "pattern": "^[0-9]{10}$"
+        }
+      }
+    },
+    "encounter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "encounter_id",
+        "encounter_class",
+        "encounter_status",
+        "arrival_mode",
+        "occurred_at",
+        "service_date"
+      ],
+      "properties": {
+        "encounter_id": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "encounter_class": {
+          "type": "string",
+          "enum": [
+            "EMERGENCY",
+            "URGENT",
+            "OBSERVATION",
+            "OUTPATIENT",
+            "INPATIENT"
+          ]
+        },
+        "encounter_status": {
+          "type": "string",
+          "enum": [
+            "ARRIVED",
+            "IN_TRIAGE",
+            "IN_PROGRESS",
+            "DISCHARGED",
+            "ADMITTED",
+            "TRANSFERRED"
+          ]
+        },
+        "arrival_mode": {
+          "type": "string",
+          "enum": [
+            "WALK_IN",
+            "EMS_GROUND",
+            "EMS_AIR",
+            "TRANSFER",
+            "POLICE",
+            "OTHER"
+          ]
+        },
+        "occurred_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "UTC timestamp of encounter event. Required for real-time processing; should not be logged in plaintext outside protected stores."
+        },
+        "service_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "acuity_level": {
+          "type": "string",
+          "enum": [
+            "ESI_1",
+            "ESI_2",
+            "ESI_3",
+            "ESI_4",
+            "ESI_5",
+            "CTAS_1",
+            "CTAS_2",
+            "CTAS_3",
+            "CTAS_4",
+            "CTAS_5",
+            "UNKNOWN"
+          ]
+        },
+        "disposition": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "DISCHARGE_HOME",
+            "ADMIT",
+            "TRANSFER",
+            "LEFT_WITHOUT_BEING_SEEN",
+            "EXPIRED",
+            "UNKNOWN"
+          ]
+        }
+      }
+    },
+    "patient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "patient_pseudo_id",
+        "age_bracket",
+        "sex_at_birth"
+      ],
+      "properties": {
+        "patient_pseudo_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Vault-issued pseudonymous identifier. No MRN, no name, no DOB."
+        },
+        "age_bracket": {
+          "type": "string",
+          "enum": [
+            "0-17",
+            "18-34",
+            "35-49",
+            "50-64",
+            "65-74",
+            "75-84",
+            "85+"
+          ]
+        },
+        "sex_at_birth": {
+          "type": "string",
+          "enum": [
+            "F",
+            "M",
+            "X",
+            "U"
+          ]
+        },
+        "pregnancy_status": {
+          "type": "string",
+          "enum": [
+            "PREGNANT",
+            "NOT_PREGNANT",
+            "UNKNOWN",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "insurance_status": {
+          "type": "string",
+          "enum": [
+            "COMMERCIAL",
+            "MEDICARE",
+            "MEDICAID",
+            "DUAL",
+            "SELF_PAY",
+            "UNINSURED",
+            "OTHER",
+            "UNKNOWN"
+          ]
+        }
+      }
+    },
+    "clinical_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "presenting_problem",
+        "vitals"
+      ],
+      "properties": {
+        "presenting_problem": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "chief_complaint_code"
+          ],
+          "properties": {
+            "chief_complaint_code": {
+              "type": "string",
+              "maxLength": 32,
+              "description": "Preferred coded complaint identifier. Strongly prefer SNOMED CT; ICD-10-CM is also acceptable for diagnosis-oriented intake workflows. Local codes should be pre-mapped whenever possible."
+            },
+            "chief_complaint_text": {
+              "type": "string",
+              "maxLength": 280,
+              "description": "Optional short free text for disambiguation only when the coded chief complaint is insufficient for initial classification. Keep bounded for latency and data minimization. MUST be scrubbed of names, MRNs, dates of birth, addresses, phone numbers, and any other direct identifiers before submission."
+            },
+            "symptom_onset_hours": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 8760,
+              "description": "Intended field for chief complaint or symptom duration, expressed as hours since onset."
+            }
+          }
+        },
+        "vitals": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "heart_rate_bpm",
+            "respiratory_rate_bpm",
+            "spo2_percent",
+            "temperature_c",
+            "systolic_bp_mmhg",
+            "diastolic_bp_mmhg"
+          ],
+          "properties": {
+            "heart_rate_bpm": {
+              "type": "integer",
+              "minimum": 20,
+              "maximum": 260
+            },
+            "respiratory_rate_bpm": {
+              "type": "integer",
+              "minimum": 4,
+              "maximum": 80
+            },
+            "spo2_percent": {
+              "type": "integer",
+              "minimum": 40,
+              "maximum": 100
+            },
+            "temperature_c": {
+              "type": "number",
+              "minimum": 30,
+              "maximum": 45
+            },
+            "systolic_bp_mmhg": {
+              "type": "integer",
+              "minimum": 40,
+              "maximum": 300
+            },
+            "diastolic_bp_mmhg": {
+              "type": "integer",
+              "minimum": 20,
+              "maximum": 200
+            },
+            "pain_score_0_10": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "gcs_total": {
+              "type": "integer",
+              "minimum": 3,
+              "maximum": 15
+            },
+            "blood_glucose_mg_dl": {
+              "type": "integer",
+              "minimum": 20,
+              "maximum": 1200
+            }
+          }
+        },
+        "critical_lab_values": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Legacy summary fields for a small fixed subset of critical labs. Prefer critical_lab_results for new integrations.",
+          "properties": {
+            "lactate_mmol_l": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 20.0
+            },
+            "troponin_ng_ml": {
+              "type": "number",
+              "minimum": 0.01,
+              "maximum": 100.0
+            }
+          }
+        },
+        "critical_lab_results": {
+          "type": "array",
+          "description": "Structured critical lab results relevant to urgency classification (for example lactate or troponin). Use LOINC where available; include only clinically significant values needed for real-time triage/classification.",
+          "maxItems": 12,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "lab_code",
+              "code_system",
+              "result_value",
+              "unit"
+            ],
+            "properties": {
+              "lab_code": {
+                "type": "string",
+                "maxLength": 32,
+                "description": "Laboratory test identifier. Strongly prefer LOINC; local lab catalog codes are acceptable if mapped upstream when possible."
+              },
+              "code_system": {
+                "type": "string",
+                "enum": [
+                  "LOINC",
+                  "LOCAL",
+                  "OTHER"
+                ]
+              },
+              "result_value": {
+                "type": "number",
+                "minimum": 0
+              },
+              "unit": {
+                "type": "string",
+                "maxLength": 32
+              },
+              "critical_flag": {
+                "type": "boolean",
+                "description": "True when the sending system has identified the result as critical or panic-range."
+              },
+              "abnormal_flag": {
+                "type": "string",
+                "enum": [
+                  "LOW",
+                  "HIGH",
+                  "CRITICAL_LOW",
+                  "CRITICAL_HIGH",
+                  "ABNORMAL",
+                  "NORMAL",
+                  "UNKNOWN"
+                ]
+              },
+              "observed_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        },
+        "high_alert_medication_context": {
+          "type": "array",
+          "description": "Preferred PHI-minimizing field for high-alert medication context. Send category- or flag-level context (for example ANTICOAGULANT, INSULIN, OPIOID) rather than specific drug names unless a downstream policy explicitly requires more detail.",
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "enum": [
+              "ANTICOAGULANT",
+              "INSULIN",
+              "OPIOID",
+              "CHEMOTHERAPY",
+              "SEDATIVE",
+              "ANESTHETIC",
+              "DIURETIC",
+              "ANTIBIOTIC"
+            ]
+          }
+        },
+        "clinical_flags": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "enum": [
+              "CHEST_PAIN",
+              "SHORTNESS_OF_BREATH",
+              "STROKE_ALERT",
+              "SEPSIS_ALERT",
+              "TRAUMA_ALERT",
+              "SUICIDAL_IDEATION",
+              "PREGNANCY_RELATED",
+              "ALTERED_MENTAL_STATUS",
+              "SYNCOPE",
+              "ACTIVE_BLEEDING",
+              "FEVER",
+              "HYPOTENSION",
+              "HYPOXIA",
+              "TACHYCARDIA",
+              "BRADYCARDIA"
+            ]
+          }
+        }
+      }
+    },
+    "billing_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "diagnoses",
+        "procedures"
+      ],
+      "properties": {
+        "diagnoses": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sequence",
+              "icd10_cm_code",
+              "diagnosis_role"
+            ],
+            "properties": {
+              "sequence": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 12
+              },
+              "icd10_cm_code": {
+                "type": "string",
+                "pattern": "^[A-TV-Z][0-9][0-9A-Z](\\.[0-9A-Z]{1,4})?$",
+                "description": "Standard ICD-10-CM diagnosis code."
+              },
+              "diagnosis_role": {
+                "type": "string",
+                "enum": [
+                  "PRIMARY",
+                  "SECONDARY",
+                  "ADMITTING",
+                  "WORKING",
+                  "RULE_OUT"
+                ]
+              },
+              "present_on_admission": {
+                "type": "string",
+                "enum": [
+                  "Y",
+                  "N",
+                  "U",
+                  "W",
+                  "NA"
+                ]
+              }
+            }
+          }
+        },
+        "procedures": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sequence",
+              "code_system",
+              "procedure_code"
+            ],
+            "properties": {
+              "sequence": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 16
+              },
+              "code_system": {
+                "type": "string",
+                "enum": [
+                  "CPT",
+                  "HCPCS"
+                ],
+                "description": "Procedure code system. Use CPT for standard 5-digit CPT codes and HCPCS for alphanumeric HCPCS codes."
+              },
+              "procedure_code": {
+                "type": "string",
+                "pattern": "^([0-9]{5}|[A-Z][0-9]{4})$",
+                "description": "The specific procedure code. For code_system=CPT, send the 5-digit CPT code here. For code_system=HCPCS, send the alphanumeric HCPCS code here."
+              },
+              "modifiers": {
+                "type": "array",
+                "maxItems": 4,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Z0-9]{2}$"
+                },
+                "description": "Optional procedure modifiers (e.g., -26, -LT)."
+              },
+              "units": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 999
+              },
+              "priority": {
+                "type": "string",
+                "enum": [
+                  "PRIMARY",
+                  "SECONDARY",
+                  "ANCILLARY"
+                ]
+              }
+            }
+          },
+          "description": "Procedure/billing line items. Use this array for CPT and HCPCS procedure codes associated with the encounter."
+        },
+        "revenue_code": {
+          "type": "string",
+          "pattern": "^[0-9]{4}$"
+        },
+        "place_of_service_code": {
+          "type": "string",
+          "pattern": "^[0-9]{2}$"
+        },
+        "drg_code": {
+          "type": "string",
+          "maxLength": 8
+        },
+        "payer_event_type": {
+          "type": "string",
+          "enum": [
+            "PRE_CLAIM_CLASSIFICATION",
+            "POINT_OF_CARE_ESTIMATE",
+            "POST_ENCOUNTER_RECON"
+          ]
+        }
+      }
+    },
+    "consent_and_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "minimum_necessary_attested": {
+          "type": "boolean",
+          "const": true
+        },
+        "hipaa_permitted_use_basis": {
+          "type": "string",
+          "enum": [
+            "TREATMENT",
+            "PAYMENT",
+            "HEALTHCARE_OPERATIONS"
+          ]
+        },
+        "data_residency": {
+          "type": "string",
+          "enum": [
+            "US"
+          ]
+        },
+        "free_text_phi_scrubbed_attested": {
+          "type": "boolean",
+          "const": true,
+          "description": "Attests that any submitted free-text fields were reviewed and scrubbed of direct identifiers and unnecessary PHI before transmission."
+        }
+      }
+    },
+    "patient_financial_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "zip_code",
+        "insurance_coverage_status",
+        "financial_assistance_status"
+      ],
+      "properties": {
+        "zip_code": {
+          "type": "string",
+          "pattern": "^[0-9]{5}(-[0-9]{4})?$",
+          "description": "Postal code used as an SDOH geography proxy only. Do not include street address."
+        },
+        "insurance_coverage_status": {
+          "type": "string",
+          "description": "Coverage-based affordability proxy used instead of direct income fields.",
+          "enum": [
+            "COMMERCIAL_INSURED",
+            "MEDICARE_ELIGIBLE",
+            "MEDICAID_QUALIFIED",
+            "DUAL_ELIGIBLE",
+            "SELF_PAY",
+            "UNINSURED",
+            "OTHER",
+            "UNKNOWN"
+          ]
+        },
+        "financial_assistance_status": {
+          "type": "string",
+          "description": "Program-eligibility affordability proxy for charity/government support; do not send direct income amounts or salary bands.",
+          "enum": [
+            "CHARITY_CARE_ELIGIBLE",
+            "GOVT_PROGRAM_ELIGIBLE",
+            "MEDICAID_QUALIFIED",
+            "NOT_ELIGIBLE",
+            "UNKNOWN"
+          ]
+        }
+      }
+    },
+    "language_preference": {
+      "type": "string",
+      "description": "Patient's preferred language for communication (e.g., 'en', 'es', 'fr-CA')."
+    }
+  }
+}

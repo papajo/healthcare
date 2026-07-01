@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0.0",
+  "proof_type": "ELIGIBILITY_PROOF",
+  "proof_id": "4f3b8d7f-8d6f-4a59-b0ad-1b56f94cb001",
+  "patient_pseudo_id": "9c6a4c72-2d8e-4e88-b7f8-4b3d6e3a9f10",
+  "verification_provider_id": "STATEBENEFITS.PROOF-SVC",
+  "issuer": "CRISISCOST.VERIFIER-01",
+  "verification_method": "BENEFITS_API",
+  "income_bracket_code": "IB-LOW-200FPL",
+  "affordability_tier": "TIER-A-SUBSIDIZED",
+  "protected_attributes": {
+    "content_type": "application/vnd.crisiscost.eligibility-proof.protected-attributes+json",
+    "schema_version": "1.0.0",
+    "encryption_algorithm": "AES-256-GCM",
+    "key_id": "kms-prod-healthcare-eligibility-proof-v1",
+    "ciphertext": "c2FtcGxlRW5jcnlwdGVkUHJvdGVjdGVkQXR0cmlidXRlc1BheWxvYWQ",
+    "iv": "QWJjZEVmR2hJaktsTW5PcA",
+    "tag": "VGFnRm9yQXV0aGVudGljYXRlZERhdGE",
+    "aad_hash": {
+      "algorithm": "SHA-256",
+      "value": "YWFkSGFzaE92ZXJQcm9vZklkQW5kSXNzdWVy"
+    },
+    "protected_attribute_names": [
+      "eligibility_status_normalized",
+      "service_area_code",
+      "household_size_band",
+      "source_program_code"
+    ]
+  },
+  "proof_valid_from": "2026-06-01T00:00:00Z",
+  "proof_valid_to": "2027-06-01T00:00:00Z",
+  "verification_assurance_level": "HIGH",
+  "source_type": "STATE_BENEFITS",
+  "proof_confidence": 0.98,
+  "manual_review_required": false,
+  "proof_hash": {
+    "algorithm": "SHA-256",
+    "value": "UHJvb2ZEaWdlc3RPZlJlZHVjZWRQYXlsb2FkVmFsdWU"
+  },
+  "signature_metadata": {
+    "signature_format": "JWS",
+    "algorithm": "ES256",
+    "key_id": "issuer-signing-key-2026-01",
+    "signature": "U2FtcGxlSldTU2lnbmF0dXJlRm9yRWxpZ2liaWxpdHlQcm9vZg",
+    "certificate_chain_thumbprints": [
+      "Q2hhaW5UaHVtYnByaW50MDE",
+      "Q2hhaW5UaHVtYnByaW50MDI"
+    ]
+  },
+  "revocation_status": "ACTIVE",
+  "consent_reference_id": "consent-eligibility-proof-2026-06-15-0001",
+  "compliance_assertions": {
+    "attribute_proof_only": true,
+    "contains_raw_financial_evidence": false,
+    "contains_direct_identity": false,
+    "contains_zip5": false
+  },
+  "created_at": "2026-06-15T14:22:31Z",
+  "verified_at": "2026-06-15T14:21:48Z"
+}

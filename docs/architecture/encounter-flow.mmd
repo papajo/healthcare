@@ -1,0 +1,30 @@
+%% Crisis-Cost Orchestrator: single-encounter end-to-end flow
+sequenceDiagram
+    autonumber
+    actor EHR as Provider System (EHR)
+    participant Gateway as API Gateway
+    participant Urgency as Urgency Engine (AI-driven)
+    participant Afford as Affordability Engine (Proof-based)
+    participant Ledger as Audit Ledger (QLDB-backed)
+    participant Dashboard as Patient Dashboard (Output)
+
+    Note over EHR,Dashboard: Single encounter flow covering F-04 ingestion, F-01 urgency classification, proof-based affordability verification, cost-cap application, and F-06 audit logging.
+
+    EHR->>Gateway: Encounter Payload\n(F-04 request via JSON/Protobuf schema:\nprovider-api-f04-request.schema.json / provider-api-f04-request.proto)
+    Gateway->>Ledger: Audit Event: ENCOUNTER_INGESTED\n(request_id, encounter_id, patient_pseudo_id, payload hash)
+
+    Gateway->>Urgency: Clinical Context\n(vitals, symptoms, diagnoses, billing codes, encounter metadata)
+    Urgency->>Urgency: Process clinical context\nDetermine urgency level (F-01)
+    Urgency-->>Gateway: Urgency Score\n(urgency level + model decision)
+    Urgency->>Ledger: Audit Event: URGENCY_CLASSIFIED\n(request_id, urgency score, model version, trace reference)
+
+    Gateway->>Afford: Affordability Verification Request\n(patient_pseudo_id, encounter context, proof reference)
+    Note over Gateway,Afford: Proof handling follows docs/security/patient-income-proof-protocol.md\nusing TLS 1.3 + mTLS, signature verification, field-level encryption,\npatient_pseudo_id only, and schemas/eligibility-proof.schema.json.
+    Afford->>Afford: Verify signed Eligibility Proof\n(check proof_valid_from/to, revocation_status,\nproof_hash, issuer signature, assurance level)
+    Afford-->>Gateway: Proof Verification\n(eligibility status + affordability tier + proof confidence)
+    Afford->>Ledger: Audit Event: ELIGIBILITY_PROOF_VERIFIED\n(per schemas/eligibility-proof-audit-event.schema.json)
+
+    Gateway->>Gateway: Apply Cost Cap\n(combine urgency score, affordability tier, and billing context)
+    Gateway-->>Dashboard: Final Cost Estimate\n(cost cap, patient responsibility, explanation)
+    Gateway->>Ledger: Audit Event: COST_CAP_APPLIED\n(final estimate, cap rule, proof_id, urgency level)
+    Dashboard->>Ledger: Audit Event: ESTIMATE_PRESENTED\n(encounter_id, patient_pseudo_id, estimate_id)

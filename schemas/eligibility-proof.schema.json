@@ -1,0 +1,403 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crisiscost.health/schemas/eligibility-proof.schema.json",
+  "title": "EligibilityProof",
+  "description": "Reduced, signed eligibility proof for affordability and subsidy decisioning. This schema enforces attribute-proof handling, prohibits raw financial evidence, and keeps sensitive SDOH proxy attributes such as eligibility status and service-area geography inside a field-level encrypted payload.",
+  "$comment": "Plaintext companion example at schemas/eligibility-proof.protected-attributes.plaintext.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "proof_type",
+    "proof_id",
+    "patient_pseudo_id",
+    "verification_provider_id",
+    "issuer",
+    "verification_method",
+    "income_bracket_code",
+    "affordability_tier",
+    "protected_attributes",
+    "proof_valid_from",
+    "proof_valid_to",
+    "verification_assurance_level",
+    "source_type",
+    "proof_hash",
+    "signature_metadata",
+    "revocation_status",
+    "consent_reference_id",
+    "compliance_assertions",
+    "created_at",
+    "verified_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "proof_type": {
+      "type": "string",
+      "const": "ELIGIBILITY_PROOF"
+    },
+    "proof_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Stable identifier for this reduced proof record."
+    },
+    "patient_pseudo_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Vault-issued pseudonymous patient identifier. No direct identity values are allowed in this document."
+    },
+    "verification_provider_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9._:-]{2,63}$",
+      "description": "Internal registry identifier for the trusted verification provider or isolated verification service."
+    },
+    "issuer": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9._:-]{2,63}$",
+      "description": "Issuer identifier embedded in the signed proof and mapped to an approved trust registry entry."
+    },
+    "verification_method": {
+      "type": "string",
+      "enum": [
+        "DOCUMENT",
+        "PAYROLL_API",
+        "BENEFITS_API",
+        "MANUAL_REVIEW"
+      ],
+      "description": "How raw evidence was verified before reduction."
+    },
+    "income_bracket_code": {
+      "type": "string",
+      "pattern": "^IB-[A-Z0-9][A-Z0-9-]{0,15}$",
+      "description": "Reduced income classification code. Raw income amounts are intentionally not represented here."
+    },
+    "affordability_tier": {
+      "type": "string",
+      "pattern": "^TIER-[A-Z0-9][A-Z0-9-]{0,23}$",
+      "description": "Tier-level affordability outcome derived from verified attributes."
+    },
+    "protected_attributes": {
+      "$ref": "#/$defs/EncryptedProtectedAttributes"
+    },
+    "proof_valid_from": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "proof_valid_to": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "verification_assurance_level": {
+      "type": "string",
+      "enum": [
+        "LOW",
+        "MODERATE",
+        "HIGH",
+        "VERY_HIGH"
+      ],
+      "description": "Verifier assurance rating for the reduced proof."
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "PAYROLL_PROVIDER",
+        "STATE_BENEFITS",
+        "FEDERAL_BENEFITS",
+        "DOCUMENT_VERIFICATION",
+        "MANUAL_REVIEW",
+        "CONSUMER_REPORT",
+        "OTHER_APPROVED"
+      ],
+      "description": "Normalized source category used for auditability without storing raw source artifacts."
+    },
+    "proof_confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Optional verifier confidence score for downstream risk policies."
+    },
+    "manual_review_required": {
+      "type": "boolean",
+      "description": "Indicates that operational handling may require manual follow-up, without embedding raw review notes."
+    },
+    "proof_hash": {
+      "$ref": "#/$defs/Digest"
+    },
+    "signature_metadata": {
+      "$ref": "#/$defs/SignatureMetadata"
+    },
+    "revocation_status": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "REVOKED",
+        "EXPIRED",
+        "SUPERSEDED"
+      ]
+    },
+    "revocation_endpoint": {
+      "type": "string",
+      "format": "uri",
+      "description": "Optional online revocation or status endpoint exposed by the verifier."
+    },
+    "consent_reference_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Reference to the consent or notice record captured before verification."
+    },
+    "compliance_assertions": {
+      "$ref": "#/$defs/ComplianceAssertions"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "verified_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the verification provider completed validation and proof issuance."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "revocation_status": {
+            "const": "REVOKED"
+          }
+        },
+        "required": [
+          "revocation_status"
+        ]
+      },
+      "then": {
+        "required": [
+          "revocation_endpoint"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "Base64UrlString": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "Digest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "value"
+      ],
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "enum": [
+            "SHA-256",
+            "SHA-384",
+            "SHA-512"
+          ]
+        },
+        "value": {
+          "$ref": "#/$defs/Base64UrlString"
+        }
+      },
+      "description": "Canonical digest of the reduced proof payload or protected payload as defined by the issuer."
+    },
+    "ComplianceAssertions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attribute_proof_only",
+        "contains_raw_financial_evidence",
+        "contains_direct_identity",
+        "contains_zip5"
+      ],
+      "properties": {
+        "attribute_proof_only": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must always be true. The proof contains only reduced attributes, never the underlying evidence files."
+        },
+        "contains_raw_financial_evidence": {
+          "type": "boolean",
+          "const": false,
+          "description": "Must always be false. Raw pay stubs, tax files, benefits letters, statements, and similar evidence are prohibited from this schema."
+        },
+        "contains_direct_identity": {
+          "type": "boolean",
+          "const": false,
+          "description": "Must always be false. Direct identifiers such as name, SSN, MRN, street address, or DOB are not allowed."
+        },
+        "contains_zip5": {
+          "type": "boolean",
+          "const": false,
+          "description": "Must always be false. ZIP5 may be used transiently upstream but cannot persist in this proof."
+        }
+      }
+    },
+    "SignatureMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signature_format",
+        "algorithm",
+        "key_id",
+        "signature"
+      ],
+      "properties": {
+        "signature_format": {
+          "type": "string",
+          "enum": [
+            "JWS",
+            "COSE",
+            "CWT",
+            "DETACHED_JWS"
+          ]
+        },
+        "algorithm": {
+          "type": "string",
+          "enum": [
+            "ES256",
+            "RS256"
+          ],
+          "description": "Approved signing algorithms for proof issuance. ES256 is preferred for FIPS-aligned deployments; RS256 is allowed for compatibility."
+        },
+        "key_id": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Versioned issuer signing key identifier from the trust registry."
+        },
+        "signature": {
+          "$ref": "#/$defs/Base64UrlString"
+        },
+        "certificate_chain_thumbprints": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/Base64UrlString"
+          }
+        }
+      }
+    },
+    "EncryptedProtectedAttributes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "content_type",
+        "schema_version",
+        "encryption_algorithm",
+        "key_id",
+        "ciphertext",
+        "iv",
+        "tag",
+        "protected_attribute_names"
+      ],
+      "properties": {
+        "content_type": {
+          "type": "string",
+          "const": "application/vnd.crisiscost.eligibility-proof.protected-attributes+json"
+        },
+        "schema_version": {
+          "type": "string",
+          "const": "1.0.0"
+        },
+        "encryption_algorithm": {
+          "type": "string",
+          "const": "AES-256-GCM",
+          "description": "Field-level authenticated encryption for sensitive SDOH proxy and benefits-status attributes."
+        },
+        "key_id": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "KMS/HSM-backed key identifier used to protect the payload."
+        },
+        "ciphertext": {
+          "$ref": "#/$defs/Base64UrlString"
+        },
+        "iv": {
+          "$ref": "#/$defs/Base64UrlString"
+        },
+        "tag": {
+          "$ref": "#/$defs/Base64UrlString"
+        },
+        "aad_hash": {
+          "$ref": "#/$defs/Digest",
+          "description": "Optional digest of external associated data bound to this ciphertext."
+        },
+        "protected_attribute_names": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "eligibility_status_normalized",
+              "service_area_code",
+              "zip3",
+              "household_size_band",
+              "source_program_code"
+            ]
+          },
+          "description": "Declares which sensitive attributes are sealed inside the encrypted payload."
+        }
+      },
+      "description": "Encrypted payload for sensitive reduced attributes. The decrypted JSON must conform to #/$defs/ProtectedAttributesPlaintext and must never be duplicated in plaintext elsewhere in the proof."
+    },
+    "ProtectedAttributesPlaintext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eligibility_status_normalized"
+      ],
+      "properties": {
+        "eligibility_status_normalized": {
+          "type": "string",
+          "enum": [
+            "ELIGIBLE",
+            "CONDITIONALLY_ELIGIBLE",
+            "NOT_ELIGIBLE",
+            "NOT_VERIFIED",
+            "EXPIRED",
+            "REVOKED"
+          ],
+          "description": "Normalized eligibility outcome only. Named program details should not be exposed unless separately justified and encrypted."
+        },
+        "service_area_code": {
+          "type": "string",
+          "pattern": "^SA-[A-Z0-9][A-Z0-9-]{0,31}$",
+          "description": "Preferred minimized geography proxy. Use instead of ZIP-derived data when available."
+        },
+        "zip3": {
+          "type": "string",
+          "pattern": "^[0-9]{3}$",
+          "description": "Allowed only when a ZIP-derived proxy is operationally required. ZIP5 is not permitted."
+        },
+        "household_size_band": {
+          "type": "string",
+          "pattern": "^HS-[A-Z0-9][A-Z0-9-]{0,15}$",
+          "description": "Optional reduced household-size band. Exact household rosters are not permitted."
+        },
+        "source_program_code": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Optional encrypted source-program code when operationally required. Keep normalized and access-restricted."
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "service_area_code",
+              "zip3"
+            ]
+          }
+        }
+      ],
+      "description": "Canonical plaintext model of the sensitive reduced attributes before field-level encryption. This definition is provided so issuers and consumers share the same logical contract even though the values must be sealed at rest and in transit."
+    }
+  }
+}

@@ -1,0 +1,755 @@
+syntax = "proto3";
+
+package crisiscost.provider_api.f04.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/type/date.proto";
+
+option go_package = "crisiscost/provider_api/f04/v1;providerapif04v1";
+
+// Protobuf translation of:
+//   provider-api-f04-request.schema.json
+// JSON Schema title:
+//   ProviderEncounterIntakeRequest
+//
+// Traceability note:
+// - Every field includes a `JSON:` comment with the original JSON property path.
+// - Fields marked "required by schema" correspond to JSON Schema `required` entries.
+// - `google.protobuf.Timestamp` is used for all JSON Schema `format: date-time` fields.
+// - `google.type.Date` is used for JSON Schema `format: date`.
+
+// Intake API for provider encounter submission.
+service ProviderEncounterIntakeService {
+  // Accepts a provider encounter intake payload for urgency classification and billing analysis.
+  rpc Intake(ProviderEncounterIntakeRequest) returns (ProviderEncounterIntakeResponse);
+}
+
+// Minimal response envelope for the intake RPC.
+// Note: the source JSON Schema only defines the request payload, so this response
+// is provided as a pragmatic service companion.
+message ProviderEncounterIntakeResponse {
+  // JSON: n/a (service response helper)
+  string request_id = 1;
+
+  // JSON: n/a (service response helper)
+  IntakeStatus status = 2;
+
+  // JSON: n/a (service response helper)
+  string message = 3;
+
+  // JSON: n/a (service response helper)
+  google.protobuf.Timestamp accepted_at = 4;
+}
+
+enum IntakeStatus {
+  INTAKE_STATUS_UNSPECIFIED = 0;
+  INTAKE_STATUS_ACCEPTED = 1;
+  INTAKE_STATUS_REJECTED = 2;
+  INTAKE_STATUS_PENDING = 3;
+}
+
+message ProviderEncounterIntakeRequest {
+  // JSON: schema_version
+  // Required by schema. Constant in JSON Schema: "1.3.0".
+  string schema_version = 1;
+
+  // JSON: request_id
+  // Required by schema. UUID string.
+  string request_id = 2;
+
+  // JSON: trace
+  Trace trace = 3;
+
+  // JSON: provider
+  // Required by schema.
+  Provider provider = 4;
+
+  // JSON: encounter
+  // Required by schema.
+  Encounter encounter = 5;
+
+  // JSON: patient
+  // Required by schema.
+  Patient patient = 6;
+
+  // JSON: clinical_context
+  // Required by schema.
+  ClinicalContext clinical_context = 7;
+
+  // JSON: billing_context
+  // Required by schema.
+  BillingContext billing_context = 8;
+
+  // JSON: consent_and_policy
+  ConsentAndPolicy consent_and_policy = 9;
+
+  // JSON: patient_financial_context
+  PatientFinancialContext patient_financial_context = 10;
+
+  // JSON: language_preference
+  string language_preference = 11;
+}
+
+message Trace {
+  // JSON: trace.trace_id
+  string trace_id = 1;
+
+  // JSON: trace.span_id
+  string span_id = 2;
+
+  // JSON: trace.source_system
+  string source_system = 3;
+
+  // JSON: trace.source_message_id
+  string source_message_id = 4;
+}
+
+message Provider {
+  // JSON: provider.provider_organization_id
+  // Required by schema. UUID string.
+  string provider_organization_id = 1;
+
+  // JSON: provider.facility_id
+  // Required by schema.
+  string facility_id = 2;
+
+  // JSON: provider.facility_type
+  // Required by schema.
+  FacilityType facility_type = 3;
+
+  // JSON: provider.department_code
+  optional string department_code = 4;
+
+  // JSON: provider.ehr_vendor
+  // Required by schema.
+  EhrVendor ehr_vendor = 5;
+
+  // JSON: provider.npi
+  // Pattern in schema: ^[0-9]{10}$
+  optional string npi = 6;
+}
+
+enum FacilityType {
+  FACILITY_TYPE_UNSPECIFIED = 0;
+  // JSON enum: ACUTE_CARE_HOSPITAL
+  FACILITY_TYPE_ACUTE_CARE_HOSPITAL = 1;
+  // JSON enum: CRITICAL_ACCESS_HOSPITAL
+  FACILITY_TYPE_CRITICAL_ACCESS_HOSPITAL = 2;
+  // JSON enum: FREESTANDING_ED
+  FACILITY_TYPE_FREESTANDING_ED = 3;
+  // JSON enum: URGENT_CARE
+  FACILITY_TYPE_URGENT_CARE = 4;
+  // JSON enum: AMBULATORY_SURGERY_CENTER
+  FACILITY_TYPE_AMBULATORY_SURGERY_CENTER = 5;
+  // JSON enum: INPATIENT_HOSPITAL
+  FACILITY_TYPE_INPATIENT_HOSPITAL = 6;
+  // JSON enum: OUTPATIENT_HOSPITAL
+  FACILITY_TYPE_OUTPATIENT_HOSPITAL = 7;
+}
+
+enum EhrVendor {
+  EHR_VENDOR_UNSPECIFIED = 0;
+  // JSON enum: EPIC
+  EHR_VENDOR_EPIC = 1;
+  // JSON enum: CERNER
+  EHR_VENDOR_CERNER = 2;
+  // JSON enum: MEDITECH
+  EHR_VENDOR_MEDITECH = 3;
+  // JSON enum: ALLSCRIPTS
+  EHR_VENDOR_ALLSCRIPTS = 4;
+  // JSON enum: ATHENAHEALTH
+  EHR_VENDOR_ATHENAHEALTH = 5;
+  // JSON enum: NEXTGEN
+  EHR_VENDOR_NEXTGEN = 6;
+  // JSON enum: OTHER
+  EHR_VENDOR_OTHER = 7;
+}
+
+message Encounter {
+  // JSON: encounter.encounter_id
+  // Required by schema.
+  string encounter_id = 1;
+
+  // JSON: encounter.encounter_class
+  // Required by schema.
+  EncounterClass encounter_class = 2;
+
+  // JSON: encounter.encounter_status
+  // Required by schema.
+  EncounterStatus encounter_status = 3;
+
+  // JSON: encounter.arrival_mode
+  // Required by schema.
+  ArrivalMode arrival_mode = 4;
+
+  // JSON: encounter.occurred_at
+  // Required by schema. JSON Schema format: date-time.
+  google.protobuf.Timestamp occurred_at = 5;
+
+  // JSON: encounter.service_date
+  // Required by schema. JSON Schema format: date.
+  google.type.Date service_date = 6;
+
+  // JSON: encounter.acuity_level
+  optional AcuityLevel acuity_level = 7;
+
+  // JSON: encounter.disposition
+  optional Disposition disposition = 8;
+}
+
+enum EncounterClass {
+  ENCOUNTER_CLASS_UNSPECIFIED = 0;
+  // JSON enum: EMERGENCY
+  ENCOUNTER_CLASS_EMERGENCY = 1;
+  // JSON enum: URGENT
+  ENCOUNTER_CLASS_URGENT = 2;
+  // JSON enum: OBSERVATION
+  ENCOUNTER_CLASS_OBSERVATION = 3;
+  // JSON enum: OUTPATIENT
+  ENCOUNTER_CLASS_OUTPATIENT = 4;
+  // JSON enum: INPATIENT
+  ENCOUNTER_CLASS_INPATIENT = 5;
+}
+
+enum EncounterStatus {
+  ENCOUNTER_STATUS_UNSPECIFIED = 0;
+  // JSON enum: ARRIVED
+  ENCOUNTER_STATUS_ARRIVED = 1;
+  // JSON enum: IN_TRIAGE
+  ENCOUNTER_STATUS_IN_TRIAGE = 2;
+  // JSON enum: IN_PROGRESS
+  ENCOUNTER_STATUS_IN_PROGRESS = 3;
+  // JSON enum: DISCHARGED
+  ENCOUNTER_STATUS_DISCHARGED = 4;
+  // JSON enum: ADMITTED
+  ENCOUNTER_STATUS_ADMITTED = 5;
+  // JSON enum: TRANSFERRED
+  ENCOUNTER_STATUS_TRANSFERRED = 6;
+}
+
+enum ArrivalMode {
+  ARRIVAL_MODE_UNSPECIFIED = 0;
+  // JSON enum: WALK_IN
+  ARRIVAL_MODE_WALK_IN = 1;
+  // JSON enum: EMS_GROUND
+  ARRIVAL_MODE_EMS_GROUND = 2;
+  // JSON enum: EMS_AIR
+  ARRIVAL_MODE_EMS_AIR = 3;
+  // JSON enum: TRANSFER
+  ARRIVAL_MODE_TRANSFER = 4;
+  // JSON enum: POLICE
+  ARRIVAL_MODE_POLICE = 5;
+  // JSON enum: OTHER
+  ARRIVAL_MODE_OTHER = 6;
+}
+
+enum AcuityLevel {
+  ACUITY_LEVEL_UNSPECIFIED = 0;
+  // JSON enum: ESI_1
+  ACUITY_LEVEL_ESI_1 = 1;
+  // JSON enum: ESI_2
+  ACUITY_LEVEL_ESI_2 = 2;
+  // JSON enum: ESI_3
+  ACUITY_LEVEL_ESI_3 = 3;
+  // JSON enum: ESI_4
+  ACUITY_LEVEL_ESI_4 = 4;
+  // JSON enum: ESI_5
+  ACUITY_LEVEL_ESI_5 = 5;
+  // JSON enum: CTAS_1
+  ACUITY_LEVEL_CTAS_1 = 6;
+  // JSON enum: CTAS_2
+  ACUITY_LEVEL_CTAS_2 = 7;
+  // JSON enum: CTAS_3
+  ACUITY_LEVEL_CTAS_3 = 8;
+  // JSON enum: CTAS_4
+  ACUITY_LEVEL_CTAS_4 = 9;
+  // JSON enum: CTAS_5
+  ACUITY_LEVEL_CTAS_5 = 10;
+  // JSON enum: UNKNOWN
+  ACUITY_LEVEL_UNKNOWN = 11;
+}
+
+enum Disposition {
+  DISPOSITION_UNSPECIFIED = 0;
+  // JSON enum: PENDING
+  DISPOSITION_PENDING = 1;
+  // JSON enum: DISCHARGE_HOME
+  DISPOSITION_DISCHARGE_HOME = 2;
+  // JSON enum: ADMIT
+  DISPOSITION_ADMIT = 3;
+  // JSON enum: TRANSFER
+  DISPOSITION_TRANSFER = 4;
+  // JSON enum: LEFT_WITHOUT_BEING_SEEN
+  DISPOSITION_LEFT_WITHOUT_BEING_SEEN = 5;
+  // JSON enum: EXPIRED
+  DISPOSITION_EXPIRED = 6;
+  // JSON enum: UNKNOWN
+  DISPOSITION_UNKNOWN = 7;
+}
+
+message Patient {
+  // JSON: patient.patient_pseudo_id
+  // Required by schema. UUID string.
+  string patient_pseudo_id = 1;
+
+  // JSON: patient.age_bracket
+  // Required by schema.
+  AgeBracket age_bracket = 2;
+
+  // JSON: patient.sex_at_birth
+  // Required by schema.
+  SexAtBirth sex_at_birth = 3;
+
+  // JSON: patient.pregnancy_status
+  optional PregnancyStatus pregnancy_status = 4;
+
+  // JSON: patient.insurance_status
+  optional InsuranceStatus insurance_status = 5;
+}
+
+enum AgeBracket {
+  AGE_BRACKET_UNSPECIFIED = 0;
+  // JSON enum: 0-17
+  AGE_BRACKET_0_17 = 1;
+  // JSON enum: 18-34
+  AGE_BRACKET_18_34 = 2;
+  // JSON enum: 35-49
+  AGE_BRACKET_35_49 = 3;
+  // JSON enum: 50-64
+  AGE_BRACKET_50_64 = 4;
+  // JSON enum: 65-74
+  AGE_BRACKET_65_74 = 5;
+  // JSON enum: 75-84
+  AGE_BRACKET_75_84 = 6;
+  // JSON enum: 85+
+  AGE_BRACKET_85_PLUS = 7;
+}
+
+enum SexAtBirth {
+  SEX_AT_BIRTH_UNSPECIFIED = 0;
+  // JSON enum: F
+  SEX_AT_BIRTH_F = 1;
+  // JSON enum: M
+  SEX_AT_BIRTH_M = 2;
+  // JSON enum: X
+  SEX_AT_BIRTH_X = 3;
+  // JSON enum: U
+  SEX_AT_BIRTH_U = 4;
+}
+
+enum PregnancyStatus {
+  PREGNANCY_STATUS_UNSPECIFIED = 0;
+  // JSON enum: PREGNANT
+  PREGNANCY_STATUS_PREGNANT = 1;
+  // JSON enum: NOT_PREGNANT
+  PREGNANCY_STATUS_NOT_PREGNANT = 2;
+  // JSON enum: UNKNOWN
+  PREGNANCY_STATUS_UNKNOWN = 3;
+  // JSON enum: NOT_APPLICABLE
+  PREGNANCY_STATUS_NOT_APPLICABLE = 4;
+}
+
+enum InsuranceStatus {
+  INSURANCE_STATUS_UNSPECIFIED = 0;
+  // JSON enum: COMMERCIAL
+  INSURANCE_STATUS_COMMERCIAL = 1;
+  // JSON enum: MEDICARE
+  INSURANCE_STATUS_MEDICARE = 2;
+  // JSON enum: MEDICAID
+  INSURANCE_STATUS_MEDICAID = 3;
+  // JSON enum: DUAL
+  INSURANCE_STATUS_DUAL = 4;
+  // JSON enum: SELF_PAY
+  INSURANCE_STATUS_SELF_PAY = 5;
+  // JSON enum: UNINSURED
+  INSURANCE_STATUS_UNINSURED = 6;
+  // JSON enum: OTHER
+  INSURANCE_STATUS_OTHER = 7;
+  // JSON enum: UNKNOWN
+  INSURANCE_STATUS_UNKNOWN = 8;
+}
+
+message ClinicalContext {
+  // JSON: clinical_context.presenting_problem
+  // Required by schema.
+  PresentingProblem presenting_problem = 1;
+
+  // JSON: clinical_context.vitals
+  // Required by schema.
+  Vitals vitals = 2;
+
+  // JSON: clinical_context.critical_lab_values
+  CriticalLabValues critical_lab_values = 3;
+
+  // JSON: clinical_context.critical_lab_results
+  repeated CriticalLabResult critical_lab_results = 4;
+
+  // JSON: clinical_context.high_alert_medication_context
+  repeated HighAlertMedicationContext high_alert_medication_context = 5;
+
+  // JSON: clinical_context.clinical_flags
+  repeated ClinicalFlag clinical_flags = 6;
+}
+
+message PresentingProblem {
+  // JSON: clinical_context.presenting_problem.chief_complaint_code
+  // Required by schema.
+  string chief_complaint_code = 1;
+
+  // JSON: clinical_context.presenting_problem.chief_complaint_text
+  optional string chief_complaint_text = 2;
+
+  // JSON: clinical_context.presenting_problem.symptom_onset_hours
+  optional double symptom_onset_hours = 3;
+}
+
+message Vitals {
+  // JSON: clinical_context.vitals.heart_rate_bpm
+  // Required by schema.
+  int32 heart_rate_bpm = 1;
+
+  // JSON: clinical_context.vitals.respiratory_rate_bpm
+  // Required by schema.
+  int32 respiratory_rate_bpm = 2;
+
+  // JSON: clinical_context.vitals.spo2_percent
+  // Required by schema.
+  int32 spo2_percent = 3;
+
+  // JSON: clinical_context.vitals.temperature_c
+  // Required by schema.
+  double temperature_c = 4;
+
+  // JSON: clinical_context.vitals.systolic_bp_mmhg
+  // Required by schema.
+  int32 systolic_bp_mmhg = 5;
+
+  // JSON: clinical_context.vitals.diastolic_bp_mmhg
+  // Required by schema.
+  int32 diastolic_bp_mmhg = 6;
+
+  // JSON: clinical_context.vitals.pain_score_0_10
+  optional int32 pain_score_0_10 = 7;
+
+  // JSON: clinical_context.vitals.gcs_total
+  optional int32 gcs_total = 8;
+
+  // JSON: clinical_context.vitals.blood_glucose_mg_dl
+  optional int32 blood_glucose_mg_dl = 9;
+}
+
+message CriticalLabValues {
+  // JSON: clinical_context.critical_lab_values.lactate_mmol_l
+  optional double lactate_mmol_l = 1;
+
+  // JSON: clinical_context.critical_lab_values.troponin_ng_ml
+  optional double troponin_ng_ml = 2;
+}
+
+message CriticalLabResult {
+  // JSON: clinical_context.critical_lab_results[].lab_code
+  // Required by schema.
+  string lab_code = 1;
+
+  // JSON: clinical_context.critical_lab_results[].code_system
+  // Required by schema.
+  LabCodeSystem code_system = 2;
+
+  // JSON: clinical_context.critical_lab_results[].result_value
+  // Required by schema.
+  double result_value = 3;
+
+  // JSON: clinical_context.critical_lab_results[].unit
+  // Required by schema.
+  string unit = 4;
+
+  // JSON: clinical_context.critical_lab_results[].critical_flag
+  optional bool critical_flag = 5;
+
+  // JSON: clinical_context.critical_lab_results[].abnormal_flag
+  optional AbnormalFlag abnormal_flag = 6;
+
+  // JSON: clinical_context.critical_lab_results[].observed_at
+  // JSON Schema format: date-time.
+  google.protobuf.Timestamp observed_at = 7;
+}
+
+enum LabCodeSystem {
+  LAB_CODE_SYSTEM_UNSPECIFIED = 0;
+  // JSON enum: LOINC
+  LAB_CODE_SYSTEM_LOINC = 1;
+  // JSON enum: LOCAL
+  LAB_CODE_SYSTEM_LOCAL = 2;
+  // JSON enum: OTHER
+  LAB_CODE_SYSTEM_OTHER = 3;
+}
+
+enum AbnormalFlag {
+  ABNORMAL_FLAG_UNSPECIFIED = 0;
+  // JSON enum: LOW
+  ABNORMAL_FLAG_LOW = 1;
+  // JSON enum: HIGH
+  ABNORMAL_FLAG_HIGH = 2;
+  // JSON enum: CRITICAL_LOW
+  ABNORMAL_FLAG_CRITICAL_LOW = 3;
+  // JSON enum: CRITICAL_HIGH
+  ABNORMAL_FLAG_CRITICAL_HIGH = 4;
+  // JSON enum: ABNORMAL
+  ABNORMAL_FLAG_ABNORMAL = 5;
+  // JSON enum: NORMAL
+  ABNORMAL_FLAG_NORMAL = 6;
+  // JSON enum: UNKNOWN
+  ABNORMAL_FLAG_UNKNOWN = 7;
+}
+
+enum HighAlertMedicationContext {
+  HIGH_ALERT_MEDICATION_CONTEXT_UNSPECIFIED = 0;
+  // JSON enum: ANTICOAGULANT
+  HIGH_ALERT_MEDICATION_CONTEXT_ANTICOAGULANT = 1;
+  // JSON enum: INSULIN
+  HIGH_ALERT_MEDICATION_CONTEXT_INSULIN = 2;
+  // JSON enum: OPIOID
+  HIGH_ALERT_MEDICATION_CONTEXT_OPIOID = 3;
+  // JSON enum: CHEMOTHERAPY
+  HIGH_ALERT_MEDICATION_CONTEXT_CHEMOTHERAPY = 4;
+  // JSON enum: SEDATIVE
+  HIGH_ALERT_MEDICATION_CONTEXT_SEDATIVE = 5;
+  // JSON enum: ANESTHETIC
+  HIGH_ALERT_MEDICATION_CONTEXT_ANESTHETIC = 6;
+  // JSON enum: DIURETIC
+  HIGH_ALERT_MEDICATION_CONTEXT_DIURETIC = 7;
+  // JSON enum: ANTIBIOTIC
+  HIGH_ALERT_MEDICATION_CONTEXT_ANTIBIOTIC = 8;
+}
+
+enum ClinicalFlag {
+  CLINICAL_FLAG_UNSPECIFIED = 0;
+  // JSON enum: CHEST_PAIN
+  CLINICAL_FLAG_CHEST_PAIN = 1;
+  // JSON enum: SHORTNESS_OF_BREATH
+  CLINICAL_FLAG_SHORTNESS_OF_BREATH = 2;
+  // JSON enum: STROKE_ALERT
+  CLINICAL_FLAG_STROKE_ALERT = 3;
+  // JSON enum: SEPSIS_ALERT
+  CLINICAL_FLAG_SEPSIS_ALERT = 4;
+  // JSON enum: TRAUMA_ALERT
+  CLINICAL_FLAG_TRAUMA_ALERT = 5;
+  // JSON enum: SUICIDAL_IDEATION
+  CLINICAL_FLAG_SUICIDAL_IDEATION = 6;
+  // JSON enum: PREGNANCY_RELATED
+  CLINICAL_FLAG_PREGNANCY_RELATED = 7;
+  // JSON enum: ALTERED_MENTAL_STATUS
+  CLINICAL_FLAG_ALTERED_MENTAL_STATUS = 8;
+  // JSON enum: SYNCOPE
+  CLINICAL_FLAG_SYNCOPE = 9;
+  // JSON enum: ACTIVE_BLEEDING
+  CLINICAL_FLAG_ACTIVE_BLEEDING = 10;
+  // JSON enum: FEVER
+  CLINICAL_FLAG_FEVER = 11;
+  // JSON enum: HYPOTENSION
+  CLINICAL_FLAG_HYPOTENSION = 12;
+  // JSON enum: HYPOXIA
+  CLINICAL_FLAG_HYPOXIA = 13;
+  // JSON enum: TACHYCARDIA
+  CLINICAL_FLAG_TACHYCARDIA = 14;
+  // JSON enum: BRADYCARDIA
+  CLINICAL_FLAG_BRADYCARDIA = 15;
+}
+
+message BillingContext {
+  // JSON: billing_context.diagnoses
+  // Required by schema.
+  repeated Diagnosis diagnoses = 1;
+
+  // JSON: billing_context.procedures
+  // Required by schema.
+  repeated Procedure procedures = 2;
+
+  // JSON: billing_context.revenue_code
+  optional string revenue_code = 3;
+
+  // JSON: billing_context.place_of_service_code
+  optional string place_of_service_code = 4;
+
+  // JSON: billing_context.drg_code
+  optional string drg_code = 5;
+
+  // JSON: billing_context.payer_event_type
+  optional PayerEventType payer_event_type = 6;
+}
+
+message Diagnosis {
+  // JSON: billing_context.diagnoses[].sequence
+  // Required by schema.
+  int32 sequence = 1;
+
+  // JSON: billing_context.diagnoses[].icd10_cm_code
+  // Required by schema.
+  string icd10_cm_code = 2;
+
+  // JSON: billing_context.diagnoses[].diagnosis_role
+  // Required by schema.
+  DiagnosisRole diagnosis_role = 3;
+
+  // JSON: billing_context.diagnoses[].present_on_admission
+  optional PresentOnAdmission present_on_admission = 4;
+}
+
+message Procedure {
+  // JSON: billing_context.procedures[].sequence
+  // Required by schema.
+  int32 sequence = 1;
+
+  // JSON: billing_context.procedures[].code_system
+  // Required by schema.
+  ProcedureCodeSystem code_system = 2;
+
+  // JSON: billing_context.procedures[].procedure_code
+  // Required by schema.
+  string procedure_code = 3;
+
+  // JSON: billing_context.procedures[].modifiers
+  repeated string modifiers = 4;
+
+  // JSON: billing_context.procedures[].units
+  optional int32 units = 5;
+
+  // JSON: billing_context.procedures[].priority
+  optional ProcedurePriority priority = 6;
+}
+
+enum DiagnosisRole {
+  DIAGNOSIS_ROLE_UNSPECIFIED = 0;
+  // JSON enum: PRIMARY
+  DIAGNOSIS_ROLE_PRIMARY = 1;
+  // JSON enum: SECONDARY
+  DIAGNOSIS_ROLE_SECONDARY = 2;
+  // JSON enum: ADMITTING
+  DIAGNOSIS_ROLE_ADMITTING = 3;
+  // JSON enum: WORKING
+  DIAGNOSIS_ROLE_WORKING = 4;
+  // JSON enum: RULE_OUT
+  DIAGNOSIS_ROLE_RULE_OUT = 5;
+}
+
+enum PresentOnAdmission {
+  PRESENT_ON_ADMISSION_UNSPECIFIED = 0;
+  // JSON enum: Y
+  PRESENT_ON_ADMISSION_Y = 1;
+  // JSON enum: N
+  PRESENT_ON_ADMISSION_N = 2;
+  // JSON enum: U
+  PRESENT_ON_ADMISSION_U = 3;
+  // JSON enum: W
+  PRESENT_ON_ADMISSION_W = 4;
+  // JSON enum: NA
+  PRESENT_ON_ADMISSION_NA = 5;
+}
+
+enum ProcedureCodeSystem {
+  PROCEDURE_CODE_SYSTEM_UNSPECIFIED = 0;
+  // JSON enum: CPT
+  PROCEDURE_CODE_SYSTEM_CPT = 1;
+  // JSON enum: HCPCS
+  PROCEDURE_CODE_SYSTEM_HCPCS = 2;
+}
+
+enum ProcedurePriority {
+  PROCEDURE_PRIORITY_UNSPECIFIED = 0;
+  // JSON enum: PRIMARY
+  PROCEDURE_PRIORITY_PRIMARY = 1;
+  // JSON enum: SECONDARY
+  PROCEDURE_PRIORITY_SECONDARY = 2;
+  // JSON enum: ANCILLARY
+  PROCEDURE_PRIORITY_ANCILLARY = 3;
+}
+
+enum PayerEventType {
+  PAYER_EVENT_TYPE_UNSPECIFIED = 0;
+  // JSON enum: PRE_CLAIM_CLASSIFICATION
+  PAYER_EVENT_TYPE_PRE_CLAIM_CLASSIFICATION = 1;
+  // JSON enum: POINT_OF_CARE_ESTIMATE
+  PAYER_EVENT_TYPE_POINT_OF_CARE_ESTIMATE = 2;
+  // JSON enum: POST_ENCOUNTER_RECON
+  PAYER_EVENT_TYPE_POST_ENCOUNTER_RECON = 3;
+}
+
+message ConsentAndPolicy {
+  // JSON: consent_and_policy.minimum_necessary_attested
+  // JSON Schema constrains this to const: true when provided.
+  optional bool minimum_necessary_attested = 1;
+
+  // JSON: consent_and_policy.hipaa_permitted_use_basis
+  optional HipaaPermittedUseBasis hipaa_permitted_use_basis = 2;
+
+  // JSON: consent_and_policy.data_residency
+  optional DataResidency data_residency = 3;
+
+  // JSON: consent_and_policy.free_text_phi_scrubbed_attested
+  // JSON Schema constrains this to const: true when provided.
+  optional bool free_text_phi_scrubbed_attested = 4;
+}
+
+enum HipaaPermittedUseBasis {
+  HIPAA_PERMITTED_USE_BASIS_UNSPECIFIED = 0;
+  // JSON enum: TREATMENT
+  HIPAA_PERMITTED_USE_BASIS_TREATMENT = 1;
+  // JSON enum: PAYMENT
+  HIPAA_PERMITTED_USE_BASIS_PAYMENT = 2;
+  // JSON enum: HEALTHCARE_OPERATIONS
+  HIPAA_PERMITTED_USE_BASIS_HEALTHCARE_OPERATIONS = 3;
+}
+
+enum DataResidency {
+  DATA_RESIDENCY_UNSPECIFIED = 0;
+  // JSON enum: US
+  DATA_RESIDENCY_US = 1;
+}
+
+message PatientFinancialContext {
+  // JSON: patient_financial_context.zip_code
+  // Required by schema.
+  string zip_code = 1;
+
+  // JSON: patient_financial_context.insurance_coverage_status
+  // Required by schema.
+  InsuranceCoverageStatus insurance_coverage_status = 2;
+
+  // JSON: patient_financial_context.financial_assistance_status
+  // Required by schema.
+  FinancialAssistanceStatus financial_assistance_status = 3;
+}
+
+enum InsuranceCoverageStatus {
+  INSURANCE_COVERAGE_STATUS_UNSPECIFIED = 0;
+  // JSON enum: COMMERCIAL_INSURED
+  INSURANCE_COVERAGE_STATUS_COMMERCIAL_INSURED = 1;
+  // JSON enum: MEDICARE_ELIGIBLE
+  INSURANCE_COVERAGE_STATUS_MEDICARE_ELIGIBLE = 2;
+  // JSON enum: MEDICAID_QUALIFIED
+  INSURANCE_COVERAGE_STATUS_MEDICAID_QUALIFIED = 3;
+  // JSON enum: DUAL_ELIGIBLE
+  INSURANCE_COVERAGE_STATUS_DUAL_ELIGIBLE = 4;
+  // JSON enum: SELF_PAY
+  INSURANCE_COVERAGE_STATUS_SELF_PAY = 5;
+  // JSON enum: UNINSURED
+  INSURANCE_COVERAGE_STATUS_UNINSURED = 6;
+  // JSON enum: OTHER
+  INSURANCE_COVERAGE_STATUS_OTHER = 7;
+  // JSON enum: UNKNOWN
+  INSURANCE_COVERAGE_STATUS_UNKNOWN = 8;
+}
+
+enum FinancialAssistanceStatus {
+  FINANCIAL_ASSISTANCE_STATUS_UNSPECIFIED = 0;
+  // JSON enum: CHARITY_CARE_ELIGIBLE
+  FINANCIAL_ASSISTANCE_STATUS_CHARITY_CARE_ELIGIBLE = 1;
+  // JSON enum: GOVT_PROGRAM_ELIGIBLE
+  FINANCIAL_ASSISTANCE_STATUS_GOVT_PROGRAM_ELIGIBLE = 2;
+  // JSON enum: MEDICAID_QUALIFIED
+  FINANCIAL_ASSISTANCE_STATUS_MEDICAID_QUALIFIED = 3;
+  // JSON enum: NOT_ELIGIBLE
+  FINANCIAL_ASSISTANCE_STATUS_NOT_ELIGIBLE = 4;
+  // JSON enum: UNKNOWN
+  FINANCIAL_ASSISTANCE_STATUS_UNKNOWN = 5;
+}

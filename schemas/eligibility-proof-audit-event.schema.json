@@ -1,0 +1,345 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crisiscost.health/schemas/eligibility-proof-audit-event.schema.json",
+  "title": "EligibilityProofAuditEvent",
+  "description": "Append-only audit event for the eligibility proof lifecycle. Captures creation, verification, revocation, and expiration using minimized identifiers and proof references suitable for immutable compliance ledgers.",
+  "$comment": "HIPAA-aligned minimization: do not include direct identifiers, raw evidence, free-text notes, ZIP5, decrypted protected attributes, or copied provider payloads.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "event_type",
+    "event_timestamp",
+    "proof_id",
+    "patient_pseudo_id",
+    "actor",
+    "proof_hash",
+    "status_change",
+    "compliance_assertions"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Stable identifier for this immutable lifecycle event."
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "ELIGIBILITY_PROOF_CREATED",
+        "ELIGIBILITY_PROOF_VERIFIED",
+        "ELIGIBILITY_PROOF_REVOKED",
+        "ELIGIBILITY_PROOF_EXPIRED"
+      ],
+      "description": "Normalized lifecycle event type for the reduced eligibility proof."
+    },
+    "event_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp when the lifecycle event was committed to the audit trail."
+    },
+    "proof_id": {
+      "$ref": "eligibility-proof.schema.json#/properties/proof_id"
+    },
+    "patient_pseudo_id": {
+      "$ref": "eligibility-proof.schema.json#/properties/patient_pseudo_id"
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actor_type",
+        "verification_provider_id"
+      ],
+      "properties": {
+        "actor_type": {
+          "type": "string",
+          "const": "VERIFICATION_PROVIDER",
+          "description": "Lifecycle events are attributed to a verification provider or isolated verification service, never to a direct human identity in the event payload."
+        },
+        "verification_provider_id": {
+          "$ref": "eligibility-proof.schema.json#/properties/verification_provider_id"
+        },
+        "issuer": {
+          "$ref": "eligibility-proof.schema.json#/properties/issuer"
+        },
+        "service_principal_id": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Z0-9._:-]{2,127}$",
+          "description": "Optional non-human service identity for tighter attribution without including operator names or emails."
+        }
+      },
+      "description": "Minimized actor envelope for the verification provider responsible for the event."
+    },
+    "proof_hash": {
+      "$ref": "eligibility-proof.schema.json#/properties/proof_hash"
+    },
+    "verification_method": {
+      "$ref": "eligibility-proof.schema.json#/properties/verification_method"
+    },
+    "verification_assurance_level": {
+      "$ref": "eligibility-proof.schema.json#/properties/verification_assurance_level"
+    },
+    "proof_valid_from": {
+      "$ref": "eligibility-proof.schema.json#/properties/proof_valid_from"
+    },
+    "proof_valid_to": {
+      "$ref": "eligibility-proof.schema.json#/properties/proof_valid_to"
+    },
+    "status_change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "new_revocation_status"
+      ],
+      "properties": {
+        "previous_eligibility_status": {
+          "$ref": "eligibility-proof.schema.json#/$defs/ProtectedAttributesPlaintext/properties/eligibility_status_normalized"
+        },
+        "new_eligibility_status": {
+          "$ref": "eligibility-proof.schema.json#/$defs/ProtectedAttributesPlaintext/properties/eligibility_status_normalized"
+        },
+        "previous_revocation_status": {
+          "$ref": "eligibility-proof.schema.json#/properties/revocation_status"
+        },
+        "new_revocation_status": {
+          "$ref": "eligibility-proof.schema.json#/properties/revocation_status"
+        }
+      },
+      "description": "Minimal status transition data needed to replay proof state without duplicating raw evidence or protected attributes."
+    },
+    "status_reason_code": {
+      "type": "string",
+      "enum": [
+        "RECORD_CREATED",
+        "VERIFICATION_COMPLETED",
+        "MANUAL_REVIEW_COMPLETED",
+        "SOURCE_REVOCATION",
+        "CONSENT_WITHDRAWN",
+        "FRAUD_CONFIRMED",
+        "PROOF_SUPERSEDED",
+        "ADMINISTRATIVE_CORRECTION",
+        "VALIDITY_WINDOW_ELAPSED"
+      ],
+      "description": "Structured reason code for the status change. Free-text reasons are intentionally disallowed for minimization and audit consistency."
+    },
+    "superseded_by_proof_id": {
+      "$ref": "eligibility-proof.schema.json#/properties/proof_id"
+    },
+    "compliance_assertions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_necessary_event",
+        "contains_raw_financial_evidence",
+        "contains_direct_identity",
+        "contains_zip5",
+        "contains_decrypted_protected_attributes"
+      ],
+      "properties": {
+        "minimum_necessary_event": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must always be true. The audit event only carries the minimum fields needed for replay, traceability, and compliance review."
+        },
+        "contains_raw_financial_evidence": {
+          "type": "boolean",
+          "const": false,
+          "description": "Must always be false. Raw income or benefits documents and extracted evidence are prohibited from audit events."
+        },
+        "contains_direct_identity": {
+          "type": "boolean",
+          "const": false,
+          "description": "Must always be false. Direct identifiers such as patient name, SSN, MRN, DOB, phone, email, or street address are not allowed."
+        },
+        "contains_zip5": {
+          "type": "boolean",
+          "const": false,
+          "description": "Must always be false. ZIP5 is not allowed in lifecycle audit events."
+        },
+        "contains_decrypted_protected_attributes": {
+          "type": "boolean",
+          "const": false,
+          "description": "Must always be false. The event must never store decrypted protected eligibility attributes."
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "ELIGIBILITY_PROOF_CREATED"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "verification_method",
+          "proof_valid_from",
+          "proof_valid_to",
+          "status_reason_code"
+        ],
+        "properties": {
+          "status_reason_code": {
+            "const": "RECORD_CREATED"
+          },
+          "status_change": {
+            "required": [
+              "new_eligibility_status",
+              "new_revocation_status"
+            ],
+            "properties": {
+              "new_revocation_status": {
+                "const": "ACTIVE"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "ELIGIBILITY_PROOF_VERIFIED"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "verification_method",
+          "verification_assurance_level",
+          "proof_valid_from",
+          "proof_valid_to",
+          "status_reason_code"
+        ],
+        "properties": {
+          "status_reason_code": {
+            "enum": [
+              "VERIFICATION_COMPLETED",
+              "MANUAL_REVIEW_COMPLETED"
+            ]
+          },
+          "status_change": {
+            "required": [
+              "new_eligibility_status",
+              "new_revocation_status"
+            ],
+            "properties": {
+              "new_revocation_status": {
+                "const": "ACTIVE"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "ELIGIBILITY_PROOF_REVOKED"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "status_reason_code"
+        ],
+        "properties": {
+          "status_reason_code": {
+            "enum": [
+              "SOURCE_REVOCATION",
+              "CONSENT_WITHDRAWN",
+              "FRAUD_CONFIRMED",
+              "PROOF_SUPERSEDED",
+              "ADMINISTRATIVE_CORRECTION"
+            ]
+          },
+          "status_change": {
+            "required": [
+              "new_revocation_status"
+            ],
+            "properties": {
+              "new_eligibility_status": {
+                "const": "REVOKED"
+              },
+              "new_revocation_status": {
+                "const": "REVOKED"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "ELIGIBILITY_PROOF_EXPIRED"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "proof_valid_to",
+          "status_reason_code"
+        ],
+        "properties": {
+          "status_reason_code": {
+            "const": "VALIDITY_WINDOW_ELAPSED"
+          },
+          "status_change": {
+            "required": [
+              "new_revocation_status"
+            ],
+            "properties": {
+              "new_eligibility_status": {
+                "const": "EXPIRED"
+              },
+              "new_revocation_status": {
+                "const": "EXPIRED"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status_reason_code": {
+            "const": "PROOF_SUPERSEDED"
+          }
+        },
+        "required": [
+          "status_reason_code"
+        ]
+      },
+      "then": {
+        "required": [
+          "superseded_by_proof_id"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.coverage
+.pytest_cache/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Runtime
+.logs/
+.pids/
+*.pid
+
+# Environment
+.env
+*.db
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store

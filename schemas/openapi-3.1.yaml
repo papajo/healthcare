@@ -1,0 +1,833 @@
+openapi: 3.1.0
+info:
+  title: Crisis-Cost Orchestrator API
+  version: 1.0.0
+  description: |
+    HIPAA-compliant platform API for real-time healthcare cost protection.
+    
+    This API provides:
+    - Provider encounter ingestion (F-04)
+    - Urgency classification (F-01)
+    - Affordability calculation (F-02)
+    - Subsidy orchestration (F-03)
+    - Audit trail access (F-06)
+    
+    All endpoints require mTLS for service-to-service calls and JWT bearer tokens for client-facing calls.
+  contact:
+    name: Crisis-Cost Engineering
+    email: engineering@crisiscost.health
+  license:
+    name: Proprietary
+    url: https://crisiscost.health/licenses/proprietary
+
+servers:
+  - url: https://api.crisiscost.health/v1
+    description: Production
+  - url: https://api.staging.crisiscost.health/v1
+    description: Staging
+
+security:
+  - BearerAuth: []
+  - MtlsAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token with HIPAA-permitted-use claim
+    MtlsAuth:
+      type: mutualTLS
+      description: Mutual TLS for service-to-service calls
+
+  headers:
+    X-Request-ID:
+      description: Client-generated idempotency key (UUID)
+      schema:
+        type: string
+        format: uuid
+    X-HIPAA-Use-Basis:
+      description: HIPAA permitted use basis for this request
+      schema:
+        type: string
+        enum: [TREATMENT, PAYMENT, HEALTHCARE_OPERATIONS]
+    X-Correlation-ID:
+      description: Correlation ID linking related events across an encounter
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error context
+
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+        has_more:
+          type: boolean
+        next_offset:
+          type: integer
+          nullable: true
+
+    # ─── F-04 Provider Encounter Intake ─────────────────────────
+    ProviderEncounterIntakeRequest:
+      $ref: 'https://crisiscost.health/schemas/provider-api/f04-encounter-intake-request.schema.json'
+
+    ProviderEncounterIntakeResponse:
+      type: object
+      properties:
+        request_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [ACCEPTED, REJECTED, PENDING]
+        message:
+          type: string
+        accepted_at:
+          type: string
+          format: date-time
+
+    # ─── F-01 Urgency Classification ──────────────────────────
+    UrgencyClassificationRequest:
+      type: object
+      required: [encounter_id, patient_pseudo_id]
+      properties:
+        encounter_id:
+          type: string
+          maxLength: 64
+        patient_pseudo_id:
+          type: string
+          format: uuid
+        clinical_context:
+          type: object
+          description: Clinical context from F-04 payload for classification
+
+    UrgencyClassificationResponse:
+      type: object
+      properties:
+        encounter_id:
+          type: string
+        urgency_label:
+          type: string
+          enum: [CRITICAL, URGENT, ROUTINE]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        triggered_evidence:
+          type: array
+          items:
+            type: string
+        rationale_summary:
+          type: string
+        classified_at:
+          type: string
+          format: date-time
+
+    # ─── F-02 Affordability Calculation ────────────────────────
+    AffordabilityCalculationRequest:
+      type: object
+      required: [request_id, encounter_id, patient_pseudo_id, urgency_label, estimated_total_cents, encounter_class]
+      properties:
+        request_id:
+          type: string
+          format: uuid
+        encounter_id:
+          type: string
+          maxLength: 64
+        patient_pseudo_id:
+          type: string
+          format: uuid
+        urgency_label:
+          type: string
+          enum: [CRITICAL, URGENT, ROUTINE]
+        estimated_total_cents:
+          type: integer
+          minimum: 0
+        encounter_class:
+          type: string
+          enum: [EMERGENCY, URGENT, OBSERVATION, OUTPATIENT, INPATIENT]
+        eligibility_proof:
+          type: object
+          properties:
+            proof_id:
+              type: string
+              format: uuid
+            income_bracket_code:
+              type: string
+            affordability_tier:
+              type: string
+            eligibility_status_normalized:
+              type: string
+              enum: [ELIGIBLE, CONDITIONALLY_ELIGIBLE, NOT_ELIGIBLE, NOT_VERIFIED, EXPIRED, REVOKED]
+            verification_assurance_level:
+              type: string
+              enum: [LOW, MODERATE, HIGH, VERY_HIGH]
+            proof_valid_from:
+              type: string
+              format: date-time
+            proof_valid_to:
+              type: string
+              format: date-time
+            revocation_status:
+              type: string
+              enum: [ACTIVE, REVOKED, EXPIRED, SUPERSEDED]
+        household_size_band:
+          type: string
+
+    AffordabilityCalculationResponse:
+      type: object
+      properties:
+        request_id:
+          type: string
+          format: uuid
+        affordability_cap_cents:
+          type: integer
+          minimum: 0
+        patient_responsibility_cents:
+          type: integer
+          minimum: 0
+        subsidy_amount_cents:
+          type: integer
+          minimum: 0
+        cap_rule_applied:
+          type: string
+        tier_applied:
+          type: string
+          enum: [TIER-CRITICAL, TIER-LOW, TIER-STANDARD, TIER-MODERATE, TIER-UNVERIFIED]
+        urgency_override_applied:
+          type: boolean
+        confidence_level:
+          type: string
+          enum: [HIGH, MODERATE, LOW]
+        computed_at:
+          type: string
+          format: date-time
+
+    # ─── F-03 Subsidy ─────────────────────────────────────────
+    SubsidyCreationRequest:
+      type: object
+      required: [encounter_id, patient_pseudo_id, provider_org_id, subsidy_amount_cents]
+      properties:
+        encounter_id:
+          type: string
+        patient_pseudo_id:
+          type: string
+          format: uuid
+        provider_org_id:
+          type: string
+          format: uuid
+        proof_id:
+          type: string
+          format: uuid
+        urgency_label:
+          type: string
+          enum: [CRITICAL, URGENT, ROUTINE]
+        estimated_total_cents:
+          type: integer
+        affordability_cap_cents:
+          type: integer
+        patient_responsibility_cents:
+          type: integer
+        subsidy_amount_cents:
+          type: integer
+        tier_applied:
+          type: string
+
+    SubsidyResponse:
+      type: object
+      properties:
+        subsidy_id:
+          type: string
+          format: uuid
+        encounter_id:
+          type: string
+        subsidy_status:
+          type: string
+          enum: [PENDING, VALIDATING, PROCESSING, SETTLED, FAILED, CANCELLED]
+        subsidy_amount_cents:
+          type: integer
+        payment_method:
+          type: string
+          enum: [ACH, WIRE, STABLECOIN]
+        payment_reference:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        settled_at:
+          type: string
+          format: date-time
+          nullable: true
+        workflow_id:
+          type: string
+          description: Temporal workflow ID
+
+    # ─── F-06 Audit Events ────────────────────────────────────
+    AuditEvent:
+      type: object
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+        event_timestamp:
+          type: string
+          format: date-time
+        actor:
+          type: object
+          properties:
+            actor_type:
+              type: string
+            actor_id:
+              type: string
+        entity:
+          type: object
+          properties:
+            entity_type:
+              type: string
+            entity_id:
+              type: string
+        payload:
+          type: object
+        integrity_hash:
+          type: string
+
+    AuditEventList:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+        total:
+          type: integer
+        has_more:
+          type: boolean
+
+    LedgerVerification:
+      type: object
+      properties:
+        verification_type:
+          type: string
+          enum: [DAILY, ON_DEMAND, INVESTIGATION]
+        chain_status:
+          type: string
+          enum: [VALID, INVALID]
+        last_verified_at:
+          type: string
+          format: date-time
+        events_since_last_check:
+          type: integer
+        digest_computed:
+          type: string
+
+paths:
+  # ─── F-04 Provider Encounter Intake ─────────────────────────
+  /encounters:
+    post:
+      operationId: intakeEncounter
+      summary: Submit provider encounter for classification
+      description: |
+        Accepts a provider encounter intake payload (F-04) for urgency classification
+        and affordability analysis. This is the primary ingestion endpoint.
+      tags: [F-04 Provider API]
+      security:
+        - MtlsAuth: []
+        - BearerAuth: []
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/X-Request-ID'
+        X-HIPAA-Use-Basis:
+          $ref: '#/components/headers/X-HIPAA-Use-Basis'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderEncounterIntakeRequest'
+      responses:
+        '202':
+          description: Encounter accepted for processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderEncounterIntakeResponse'
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication required
+        '413':
+          description: Payload too large
+
+  # ─── F-01 Urgency Classification ──────────────────────────
+  /urgency/classify:
+    post:
+      operationId: classifyUrgency
+      summary: Classify encounter urgency level
+      description: |
+        Triggers F-01 urgency classification for an encounter.
+        Returns CRITICAL, URGENT, or ROUTINE with confidence and evidence.
+      tags: [F-01 Urgency Classifier]
+      security:
+        - BearerAuth: []
+      headers:
+        X-Correlation-ID:
+          $ref: '#/components/headers/X-Correlation-ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UrgencyClassificationRequest'
+      responses:
+        '200':
+          description: Classification complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UrgencyClassificationResponse'
+        '400':
+          description: Invalid request
+        '422':
+          description: Insufficient clinical data for classification
+
+  # ─── F-02 Affordability Calculation ────────────────────────
+  /affordability/calculate:
+    post:
+      operationId: calculateAffordability
+      summary: Calculate patient affordability cap
+      description: |
+        Calculates the maximum patient out-of-pocket cost based on verified
+        eligibility proof, urgency classification, and billing context.
+        Enforces the 10% annual income cap rule.
+      tags: [F-02 Affordability Engine]
+      security:
+        - BearerAuth: []
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/X-Request-ID'
+        X-Correlation-ID:
+          $ref: '#/components/headers/X-Correlation-ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AffordabilityCalculationRequest'
+      responses:
+        '200':
+          description: Affordability calculation complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffordabilityCalculationResponse'
+        '400':
+          description: Invalid request payload
+        '422':
+          description: Unknown income bracket or tier
+        '500':
+          description: Computation error
+
+  # ─── F-03 Subsidies ───────────────────────────────────────
+  /subsidies:
+    post:
+      operationId: createSubsidy
+      summary: Create subsidy record and initiate payment
+      description: |
+        Creates a subsidy record and initiates the Temporal workflow
+        for payment processing through the appropriate payment rail.
+      tags: [F-03 Subsidy Orchestrator]
+      security:
+        - BearerAuth: []
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/X-Request-ID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubsidyCreationRequest'
+      responses:
+        '201':
+          description: Subsidy created and workflow initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubsidyResponse'
+        '400':
+          description: Invalid request
+        '422':
+          description: Subsidy eligibility validation failed
+
+    get:
+      operationId: listSubsidies
+      summary: List subsidies with filters
+      tags: [F-03 Subsidy Orchestrator]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: encounter_id
+          in: query
+          schema:
+            type: string
+        - name: patient_pseudo_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, VALIDATING, PROCESSING, SETTLED, FAILED, CANCELLED]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of subsidies
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subsidies:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SubsidyResponse'
+                  total:
+                    type: integer
+                  has_more:
+                    type: boolean
+
+  /subsidies/{subsidy_id}:
+    get:
+      operationId: getSubsidy
+      summary: Get subsidy status
+      tags: [F-03 Subsidy Orchestrator]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: subsidy_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Subsidy details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubsidyResponse'
+        '404':
+          description: Subsidy not found
+
+  /subsidies/{subsidy_id}/cancel:
+    post:
+      operationId: cancelSubsidy
+      summary: Cancel a pending subsidy
+      tags: [F-03 Subsidy Orchestrator]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: subsidy_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Subsidy cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubsidyResponse'
+        '404':
+          description: Subsidy not found
+        '409':
+          description: Subsidy already settled or cancelled
+
+  /subsidies/reconciliation:
+    get:
+      operationId: getReconciliationReport
+      summary: Get daily reconciliation report
+      tags: [F-03 Subsidy Orchestrator]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Reconciliation report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reconciliation_date:
+                    type: string
+                    format: date
+                  total_created:
+                    type: integer
+                  total_settled:
+                    type: integer
+                  total_failed:
+                    type: integer
+                  total_pending:
+                    type: integer
+                  total_amount_settled_cents:
+                    type: integer
+                  mismatches:
+                    type: array
+                    items:
+                      type: object
+
+  # ─── F-06 Audit Events ────────────────────────────────────
+  /audit/events:
+    get:
+      operationId: listAuditEvents
+      summary: Query audit events
+      description: |
+        Query immutable audit events with filtering.
+        Requires compliance or operations role.
+      tags: [F-06 Audit Ledger]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: event_type
+          in: query
+          schema:
+            type: string
+        - name: entity_type
+          in: query
+          schema:
+            type: string
+        - name: entity_id
+          in: query
+          schema:
+            type: string
+        - name: encounter_id
+          in: query
+          schema:
+            type: string
+        - name: patient_pseudo_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Audit events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEventList'
+
+  /audit/events/{event_id}:
+    get:
+      operationId: getAuditEvent
+      summary: Get single audit event
+      tags: [F-06 Audit Ledger]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Audit event details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEvent'
+        '404':
+          description: Event not found
+
+  /audit/verify:
+    post:
+      operationId: verifyLedgerIntegrity
+      summary: Verify ledger chain integrity
+      description: |
+        On-demand verification of the QLDB ledger integrity.
+        Requires compliance admin role.
+      tags: [F-06 Audit Ledger]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerVerification'
+        '403':
+          description: Insufficient permissions
+        '500':
+          description: Integrity check failed (chain_status: INVALID)
+
+  # ─── Patient Dashboard ─────────────────────────────────────
+  /patients/{patient_pseudo_id}/results:
+    get:
+      operationId: getPatientResults
+      summary: Get patient-facing cost estimate results
+      description: |
+        Returns derived result view model for the patient cost dashboard.
+        Uses patient_pseudo_id only — no direct identifiers.
+      tags: [Patient Dashboard]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: patient_pseudo_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: encounter_id
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Patient results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [PROCESSING, READY, NEEDS_VERIFICATION, UNDER_REVIEW, SUPERSEDED]
+                  urgency:
+                    type: object
+                    properties:
+                      level:
+                        type: string
+                      label:
+                        type: string
+                      explanation:
+                        type: string
+                  estimate:
+                    type: object
+                    properties:
+                      patient_responsibility_cents:
+                        type: integer
+                      currency:
+                        type: string
+                        default: USD
+                      cap_applied:
+                        type: boolean
+                      cap_rule_label:
+                        type: string
+                      protection_amount_cents:
+                        type: integer
+                      estimate_status:
+                        type: string
+                        enum: [VERIFIED, PROVISIONAL]
+                  eligibility:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      affordability_tier:
+                        type: string
+                      verification_assurance_level:
+                        type: string
+                      manual_review_required:
+                        type: boolean
+                      proof_valid_to:
+                        type: string
+                        format: date-time
+                  timestamps:
+                    type: object
+                    properties:
+                      evaluated_at:
+                        type: string
+                        format: date-time
+                      last_updated_at:
+                        type: string
+                        format: date-time
+                  actions:
+                    type: array
+                    items:
+                      type: string
+        '404':
+          description: No results found for this patient
