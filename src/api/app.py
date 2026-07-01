@@ -20,6 +20,7 @@ from src.api.routes_affordability import router as affordability_router
 from src.api.routes_audit import router as audit_router
 from src.api.routes_auth import router as auth_router
 from src.api.routes_claims import router as claims_router
+from src.api.routes_fhir import router as fhir_router
 from src.api.routes_subsidy import router as subsidy_router
 from src.api.routes_urgency import router as urgency_router
 from src.config.settings import settings
@@ -64,6 +65,15 @@ async def lifespan(app: FastAPI):
         _temporal_available = False
         logger.warning("Temporal unavailable: %s", e)
 
+    # Seed FHIR demo data
+    try:
+        from src.services.fhir_store import seed_demo_data
+
+        seed_demo_data()
+        logger.info("FHIR demo data seeded")
+    except Exception as e:
+        logger.warning("Failed to seed FHIR data: %s", e)
+
     yield
 
     # Teardown
@@ -105,6 +115,7 @@ app.include_router(subsidy_router, prefix="/v1", tags=["subsidy"])
 app.include_router(claims_router, prefix="/v1", tags=["claims"])
 app.include_router(audit_router, prefix="/v1", tags=["audit"])
 app.include_router(auth_router)
+app.include_router(fhir_router, prefix="/fhir", tags=["fhir"])
 
 
 # ─── Health & Readiness ──────────────────────────────────────────────────────

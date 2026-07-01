@@ -44,6 +44,9 @@ ignore = [
     "B904",   # raise-from in except blocks — HTTPException wrapping is intentional
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"src/models/fhir/*" = ["N815"]  # FHIR R4 requires camelCase field names
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
