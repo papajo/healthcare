@@ -18,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.routes_affordability import router as affordability_router
 from src.api.routes_audit import router as audit_router
+from src.api.routes_claims import router as claims_router
 from src.api.routes_subsidy import router as subsidy_router
 from src.api.routes_urgency import router as urgency_router
 from src.config.settings import settings
@@ -96,9 +97,11 @@ app.add_middleware(
 
 # ─── Routers ─────────────────────────────────────────────────────────────────
 
+
 app.include_router(urgency_router, prefix="/v1", tags=["urgency"])
 app.include_router(affordability_router, prefix="/v1", tags=["affordability"])
 app.include_router(subsidy_router, prefix="/v1", tags=["subsidy"])
+app.include_router(claims_router, prefix="/v1", tags=["claims"])
 app.include_router(audit_router, prefix="/v1", tags=["audit"])
 
 

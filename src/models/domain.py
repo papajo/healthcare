@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-from enum import Enum
+from datetime import date, datetime
+from enum import Enum, StrEnum
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
@@ -222,3 +222,79 @@ class AuditEvent(BaseModel):
     correlation_id: UUID | None = None
     schema_version: str = "1.0.0"
     integrity_hash: str = ""
+
+
+# ─── Claims ──────────────────────────────────────────────────────────────────
+
+
+class ClaimStatus(StrEnum):
+    DRAFT = "DRAFT"
+    SUBMITTED = "SUBMITTED"
+    UNDER_REVIEW = "UNDER_REVIEW"
+    APPROVED = "APPROVED"
+    PARTIAL = "PARTIAL"
+    DENIED = "DENIED"
+    APPEALED = "APPEALED"
+    SETTLED = "SETTLED"
+    VOIDED = "VOIDED"
+
+
+class ClaimLineItem(BaseModel):
+    """Single line item on a claim."""
+
+    line_item_id: str = Field(max_length=64)
+    service_code: str = Field(max_length=32, description="CPT/HCPCS code")
+    description: str = Field(max_length=256)
+    quantity: int = Field(ge=1, default=1)
+    unit_price_cents: int = Field(ge=0)
+    total_cents: int = Field(ge=0)
+    modifier_codes: list[str] | None = None
+
+
+class ClaimCreateRequest(BaseModel):
+    """Request to create a new claim."""
+
+    encounter_id: str = Field(max_length=64)
+    patient_pseudo_id: UUID
+    provider_org_id: UUID
+    payer_id: str = Field(max_length=64, description="Insurance payer ID")
+    claim_type: str = Field(
+        default="PROFESSIONAL",
+        pattern=r"^(PROFESSIONAL|INSTITUTIONAL|PHARMACY)$",
+    )
+    service_date: date
+    line_items: list[ClaimLineItem] = Field(min_length=1)
+    diagnosis_codes: list[str] = Field(min_length=1, description="ICD-10 codes")
+    notes: str | None = Field(default=None, max_length=1024)
+
+
+class ClaimResponse(BaseModel):
+    """Full claim record response."""
+
+    claim_id: UUID = Field(default_factory=uuid4)
+    encounter_id: str
+    patient_pseudo_id: UUID
+    provider_org_id: UUID
+    payer_id: str
+    claim_type: str
+    claim_status: ClaimStatus
+    service_date: date
+    line_items: list[ClaimLineItem]
+    diagnosis_codes: list[str]
+    total_charged_cents: int = Field(ge=0)
+    insurance_responsibility_cents: int = Field(ge=0, default=0)
+    patient_responsibility_cents: int = Field(ge=0, default=0)
+    subsidy_applied_cents: int = Field(ge=0, default=0)
+    notes: str | None = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    settled_at: datetime | None = None
+
+
+class ClaimStatusUpdate(BaseModel):
+    """Update claim status."""
+
+    claim_status: ClaimStatus
+    insurance_responsibility_cents: int | None = Field(default=None, ge=0)
+    patient_responsibility_cents: int | None = Field(default=None, ge=0)
+    notes: str | None = Field(default=None, max_length=1024)

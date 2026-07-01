@@ -7,6 +7,8 @@ import type {
   Subsidy,
   AuditEvent,
   HealthStatus,
+  Claim,
+  ClaimSummary,
 } from '../types/api';
 
 const API_BASE = '/v1';
@@ -120,4 +122,67 @@ export async function verifyAuditIntegrity(): Promise<{
   invalid_events: number;
 }> {
   return fetchJson(`${API_BASE}/audit/verify`);
+}
+
+// ─── Claims ──────────────────────────────────────────────────────────────────
+
+export async function listClaims(params?: {
+  patient_pseudo_id?: string;
+  claim_status?: string;
+  limit?: number;
+}): Promise<{ total: number; claims: Claim[] }> {
+  const query = new URLSearchParams();
+  if (params?.patient_pseudo_id) query.set('patient_pseudo_id', params.patient_pseudo_id);
+  if (params?.claim_status) query.set('claim_status', params.claim_status);
+  if (params?.limit) query.set('limit', String(params.limit));
+
+  return fetchJson(`${API_BASE}/claims?${query.toString()}`);
+}
+
+export async function getClaim(claimId: string): Promise<Claim> {
+  return fetchJson<Claim>(`${API_BASE}/claims/${claimId}`);
+}
+
+export async function getClaimSummary(): Promise<ClaimSummary> {
+  return fetchJson<ClaimSummary>(`${API_BASE}/claims/summary`);
+}
+
+export async function createClaim(params: {
+  encounter_id: string;
+  patient_pseudo_id: string;
+  provider_org_id: string;
+  payer_id: string;
+  service_date: string;
+  line_items: Array<{
+    line_item_id: string;
+    service_code: string;
+    description: string;
+    quantity: number;
+    unit_price_cents: number;
+    total_cents: number;
+  }>;
+  diagnosis_codes: string[];
+}): Promise<Claim> {
+  return fetchJson<Claim>(`${API_BASE}/claims`, {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
+export async function submitClaim(claimId: string): Promise<Claim> {
+  return fetchJson<Claim>(`${API_BASE}/claims/${claimId}/submit`, {
+    method: 'POST',
+  });
+}
+
+export async function settleClaim(claimId: string): Promise<Claim> {
+  return fetchJson<Claim>(`${API_BASE}/claims/${claimId}/settle`, {
+    method: 'POST',
+  });
+}
+
+export async function voidClaim(claimId: string): Promise<Claim> {
+  return fetchJson<Claim>(`${API_BASE}/claims/${claimId}/void`, {
+    method: 'POST',
+  });
 }

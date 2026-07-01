@@ -99,3 +99,55 @@ export interface EncounterFlow {
   subsidy: Subsidy;
   audit_events: AuditEvent[];
 }
+
+// ─── Claims ──────────────────────────────────────────────────────────────────
+
+export type ClaimStatus =
+  | 'DRAFT'
+  | 'SUBMITTED'
+  | 'UNDER_REVIEW'
+  | 'APPROVED'
+  | 'PARTIAL'
+  | 'DENIED'
+  | 'APPEALED'
+  | 'SETTLED'
+  | 'VOIDED';
+
+export interface ClaimLineItem {
+  line_item_id: string;
+  service_code: string;
+  description: string;
+  quantity: number;
+  unit_price_cents: number;
+  total_cents: number;
+}
+
+export interface Claim {
+  claim_id: string;
+  encounter_id: string;
+  patient_pseudo_id: string;
+  provider_org_id: string;
+  payer_id: string;
+  claim_type: string;
+  claim_status: ClaimStatus;
+  service_date: string;
+  line_items: ClaimLineItem[];
+  diagnosis_codes: string[];
+  total_charged_cents: number;
+  insurance_responsibility_cents: number;
+  patient_responsibility_cents: number;
+  subsidy_applied_cents: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  settled_at: string | null;
+}
+
+export interface ClaimSummary {
+  total_claims: number;
+  by_status: Record<string, number>;
+  total_charged_cents: number;
+  total_insurance_responsibility_cents: number;
+  total_patient_responsibility_cents: number;
+  total_subsidy_applied_cents: number;
+}
