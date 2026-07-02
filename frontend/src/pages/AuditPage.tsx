@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import {
   Shield,
   Search,
-  Activity,
   CheckCircle,
   AlertTriangle,
   Filter,

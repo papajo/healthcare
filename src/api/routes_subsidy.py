@@ -2,8 +2,10 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.deps import require_role
+from src.models.auth import UserRole
 from src.models.domain import (
     ActorType,
     AuditEventType,
@@ -22,6 +24,7 @@ router = APIRouter()
     response_model=SubsidyResponse,
     summary="Create a subsidy record",
     description="Create a new subsidy record and initiate payment workflow.",
+    dependencies=[Depends(require_role(UserRole.CLINICIAN, UserRole.NURSE, UserRole.ADMIN))],
 )
 async def create_subsidy(request: SubsidyCreationRequest):
     """Create a subsidy record."""
@@ -51,6 +54,7 @@ async def create_subsidy(request: SubsidyCreationRequest):
     response_model=SubsidyResponse,
     summary="Get subsidy status",
     description="Get the current status of a subsidy.",
+    dependencies=[Depends(require_role(UserRole.CLINICIAN, UserRole.NURSE, UserRole.ADMIN))],
 )
 async def get_subsidy(subsidy_id: UUID):
     """Get subsidy by ID."""
@@ -65,6 +69,7 @@ async def get_subsidy(subsidy_id: UUID):
     response_model=SubsidyResponse,
     summary="Settle a subsidy",
     description="Mark a subsidy as settled after successful payment.",
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
 )
 async def settle_subsidy(subsidy_id: UUID):
     """Settle a subsidy."""
@@ -92,6 +97,7 @@ async def settle_subsidy(subsidy_id: UUID):
     response_model=SubsidyResponse,
     summary="Cancel a subsidy",
     description="Cancel a pending subsidy.",
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
 )
 async def cancel_subsidy(subsidy_id: UUID, reason: str = "cancelled"):
     """Cancel a pending subsidy."""

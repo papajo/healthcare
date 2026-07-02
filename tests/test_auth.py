@@ -63,7 +63,7 @@ def _bootstrap_admin(
     password: str = "adminpass123",
 ) -> dict:
     """Create an admin user directly via service and return tokens."""
-    record = auth_service.register(
+    auth_service.register(
         __import__("src.models.auth", fromlist=["UserCreate"]).UserCreate(
             username=username,
             email=f"{username}@test.com",

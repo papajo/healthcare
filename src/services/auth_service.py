@@ -54,6 +54,8 @@ class AuthService:
             role=user.role,
             created_at=now,
             is_active=True,
+            fhir_patient_id=user.fhir_patient_id,
+            assigned_patient_ids=list(user.assigned_patient_ids),
         )
         self._users[str(record.user_id)] = record
         logger.info("User registered: %s (%s)", record.username, record.role.value)
@@ -236,7 +238,44 @@ class AuthService:
             role=user.role,
             created_at=user.created_at,
             is_active=user.is_active,
+            fhir_patient_id=user.fhir_patient_id,
+            assigned_patient_ids=user.assigned_patient_ids,
         )
+
+    # ─── Doctor-Patient Assignments ────────────────────────────────────────
+
+    def assign_patient(self, doctor_user_id: str, patient_fhir_id: str) -> bool:
+        """Assign a FHIR Patient to a doctor. Returns True if user found."""
+        user = self._users.get(doctor_user_id)
+        if user is None:
+            return False
+        if patient_fhir_id not in user.assigned_patient_ids:
+            user.assigned_patient_ids.append(patient_fhir_id)
+        return True
+
+    def unassign_patient(self, doctor_user_id: str, patient_fhir_id: str) -> bool:
+        """Remove a patient assignment from a doctor. Returns True if removed."""
+        user = self._users.get(doctor_user_id)
+        if user is None:
+            return False
+        if patient_fhir_id in user.assigned_patient_ids:
+            user.assigned_patient_ids.remove(patient_fhir_id)
+            return True
+        return False
+
+    def get_doctor_patient_ids(self, doctor_user_id: str) -> list[str]:
+        """Get all FHIR Patient IDs assigned to a doctor."""
+        user = self._users.get(doctor_user_id)
+        if user is None:
+            return []
+        return list(user.assigned_patient_ids)
+
+    def get_patient_user(self, fhir_patient_id: str) -> UserResponse | None:
+        """Find the auth user linked to a FHIR Patient ID."""
+        for user in self._users.values():
+            if user.fhir_patient_id == fhir_patient_id and user.is_active:
+                return self._to_response(user)
+        return None
 
 
 # Singleton

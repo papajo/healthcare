@@ -1,13 +1,17 @@
 import { NavLink } from 'react-router-dom';
 import { Shield } from 'lucide-react';
-import { navItems } from './NavItems';
+import { useAuth } from '../contexts/AuthContext';
+import type { NavItem } from './NavItems';
 
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  items: NavItem[];
 }
 
-export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export default function Sidebar({ collapsed, onToggle, items }: SidebarProps) {
+  const { user } = useAuth();
+
   return (
     <aside
       className={`hidden md:flex flex-col fixed left-0 top-0 bottom-0 z-40 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ${
@@ -41,7 +45,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       </div>
 
       <nav className="flex-1 py-4 space-y-1 px-2">
-        {navItems.map((item) => (
+        {items.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
@@ -63,15 +67,20 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         ))}
       </nav>
 
-      {!collapsed && (
+      {!collapsed && user && (
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-400 text-sm font-bold">
-              A
+              {user.full_name
+                .split(' ')
+                .map((n) => n[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2)}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">Admin</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">admin@cco.io</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user.full_name}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
             </div>
           </div>
         </div>

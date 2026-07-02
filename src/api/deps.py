@@ -84,3 +84,59 @@ def require_scope(required_scope: Scope):
         return user
 
     return _check
+
+
+# ─── Data-scoping dependency ─────────────────────────────────────────────────
+
+
+def _visible_patient_ids(user: AuthUserResponse) -> list[str] | None:
+    """Return the list of FHIR Patient IDs the user may access.
+
+    * ``None``  → unbounded access (admin / system / nurse)
+    * ``[...]`` → exactly these patient IDs (doctor or patient)
+    """
+    if user.role in (UserRole.ADMIN, UserRole.SYSTEM, UserRole.NURSE):
+        return None  # full access
+
+    if user.role == UserRole.PATIENT:
+        if user.fhir_patient_id:
+            return [user.fhir_patient_id]
+        return []  # no linked patient → no access
+
+    if user.role == UserRole.CLINICIAN:
+        return user.assigned_patient_ids or []
+
+    return []  # unknown role → no access
+
+
+class PatientScope:
+    """Injected dependency carrying the current user and their visible patient IDs.
+
+    ``patient_ids is None`` means unbounded (admin/system/nurse).
+    ``patient_ids is [...]`` means scoped to those IDs.
+    """
+
+    def __init__(
+        self,
+        user: AuthUserResponse,
+        patient_ids: list[str] | None,
+    ) -> None:
+        self.user = user
+        self.patient_ids = patient_ids
+
+    def can_access(self, fhir_patient_id: str) -> bool:
+        """Check if the user may access a specific patient."""
+        if self.patient_ids is None:
+            return True
+        return fhir_patient_id in self.patient_ids
+
+
+async def get_patient_scope(user: CurrentUser) -> PatientScope:
+    """Build a PatientScope for the current user."""
+    return PatientScope(
+        user=user,
+        patient_ids=_visible_patient_ids(user),
+    )
+
+
+PatientScopeDep = Annotated[PatientScope, Depends(get_patient_scope)]

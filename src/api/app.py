@@ -83,6 +83,15 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("Failed to seed clinical data: %s", e)
 
+    # Seed demo users for RBAC
+    try:
+        from src.services.user_seed import seed_users
+
+        seed_users()
+        logger.info("Demo users seeded")
+    except Exception as e:
+        logger.warning("Failed to seed demo users: %s", e)
+
     yield
 
     # Teardown

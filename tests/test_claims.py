@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date
 from uuid import uuid4
 
 import pytest
@@ -14,7 +14,6 @@ from src.models.domain import (
     ClaimStatusUpdate,
 )
 from src.services.claims_service import ClaimStore
-
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -157,9 +156,27 @@ class TestClaimsAPI:
     @pytest.fixture(autouse=True)
     def setup_client(self):
         from fastapi.testclient import TestClient
+
         from src.api.app import app
+        from src.models.auth import UserCreate, UserRole
+        from src.services.auth_service import auth_service
 
         self.client = TestClient(app)
+
+        # Ensure admin user exists for auth
+        existing = {u.username for u in auth_service.list_users()}
+        if "testclaimsadmin" not in existing:
+            auth_service.register(
+                UserCreate(
+                    username="testclaimsadmin",
+                    email="testclaimsadmin@test.example",
+                    password="testclaimsadmin123",
+                    full_name="Test Claims Admin",
+                    role=UserRole.ADMIN,
+                )
+            )
+        tokens = auth_service.login("testclaimsadmin", "testclaimsadmin123")
+        self.headers = {"Authorization": f"Bearer {tokens.access_token}"}
 
     def test_create_claim(self):
         response = self.client.post(
@@ -182,6 +199,7 @@ class TestClaimsAPI:
                 ],
                 "diagnosis_codes": ["R07.9"],
             },
+            headers=self.headers,
         )
         assert response.status_code == 200
         data = response.json()
@@ -210,11 +228,15 @@ class TestClaimsAPI:
                 ],
                 "diagnosis_codes": ["I10"],
             },
+            headers=self.headers,
         )
         claim_id = create_resp.json()["claim_id"]
 
         # Submit
-        submit_resp = self.client.post(f"/v1/claims/{claim_id}/submit")
+        submit_resp = self.client.post(
+            f"/v1/claims/{claim_id}/submit",
+            headers=self.headers,
+        )
         assert submit_resp.status_code == 200
         assert submit_resp.json()["claim_status"] == "SUBMITTED"
 
@@ -239,25 +261,38 @@ class TestClaimsAPI:
                 ],
                 "diagnosis_codes": ["J06.9"],
             },
+            headers=self.headers,
         )
         claim_id = create_resp.json()["claim_id"]
 
-        get_resp = self.client.get(f"/v1/claims/{claim_id}")
+        get_resp = self.client.get(
+            f"/v1/claims/{claim_id}",
+            headers=self.headers,
+        )
         assert get_resp.status_code == 200
         assert get_resp.json()["claim_id"] == claim_id
 
     def test_get_nonexistent_claim(self):
-        response = self.client.get("/v1/claims/nonexistent")
+        response = self.client.get(
+            "/v1/claims/nonexistent",
+            headers=self.headers,
+        )
         assert response.status_code == 404
 
     def test_list_claims(self):
-        response = self.client.get("/v1/claims")
+        response = self.client.get(
+            "/v1/claims",
+            headers=self.headers,
+        )
         assert response.status_code == 200
         assert "total" in response.json()
         assert "claims" in response.json()
 
     def test_claim_summary(self):
-        response = self.client.get("/v1/claims/summary")
+        response = self.client.get(
+            "/v1/claims/summary",
+            headers=self.headers,
+        )
         assert response.status_code == 200
         data = response.json()
         assert "total_claims" in data

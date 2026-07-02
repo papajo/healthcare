@@ -2,15 +2,19 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { navItems } from './NavItems';
+import { getNavItems } from './NavItems';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import BottomNav from './BottomNav';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 768px)');
+  const { user } = useAuth();
+
+  const navItems = user ? getNavItems(user.role) : [];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -18,6 +22,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <Sidebar
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          items={navItems}
         />
       )}
 
@@ -87,7 +92,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      {!isDesktop && <BottomNav />}
+      {!isDesktop && <BottomNav items={navItems} />}
     </div>
   );
 }
