@@ -1,7 +1,9 @@
 """Affordability Engine API routes — F-02."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.deps import require_role
+from src.models.auth import UserRole
 from src.models.domain import (
     ActorType,
     AffordabilityCalculationRequest,
@@ -20,6 +22,7 @@ router = APIRouter()
     response_model=AffordabilityCalculationResponse,
     summary="Calculate patient affordability cap",
     description="Deterministic calculation of the maximum out-of-pocket cost.",
+    dependencies=[Depends(require_role(UserRole.CLINICIAN, UserRole.NURSE, UserRole.ADMIN))],
 )
 async def calculate(request: AffordabilityCalculationRequest):
     """Calculate the patient's affordability cap."""

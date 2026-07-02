@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from src.api.deps import CurrentUser, require_role
+from src.models.auth import UserRole
 from src.models.domain import (
     ActorType,
     AuditEventType,
@@ -21,8 +23,9 @@ router = APIRouter()
     "/claims",
     summary="Create a new claim",
     description="Submit a new healthcare claim with line items and diagnosis codes.",
+    dependencies=[Depends(require_role(UserRole.CLINICIAN, UserRole.NURSE, UserRole.ADMIN))],
 )
-async def create_claim(request: ClaimCreateRequest):
+async def create_claim(request: ClaimCreateRequest, user: CurrentUser):
     """Create a new claim."""
     claim = claim_store.create_claim(request)
 
@@ -47,6 +50,7 @@ async def create_claim(request: ClaimCreateRequest):
     "/claims",
     summary="List claims",
     description="List claims with optional filters for patient, provider, or status.",
+    dependencies=[Depends(require_role(UserRole.CLINICIAN, UserRole.NURSE, UserRole.ADMIN))],
 )
 async def list_claims(
     patient_pseudo_id: str | None = Query(default=None),
@@ -70,6 +74,7 @@ async def list_claims(
     "/claims/summary",
     summary="Claim statistics",
     description="Get aggregate claim statistics (totals by status, amounts).",
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
 )
 async def get_claim_summary():
     """Get claim summary statistics."""
@@ -80,6 +85,7 @@ async def get_claim_summary():
     "/claims/{claim_id}",
     summary="Get claim details",
     description="Retrieve a single claim by ID.",
+    dependencies=[Depends(require_role(UserRole.CLINICIAN, UserRole.NURSE, UserRole.ADMIN))],
 )
 async def get_claim(claim_id: str):
     """Get a claim by ID."""
@@ -93,6 +99,7 @@ async def get_claim(claim_id: str):
     "/claims/{claim_id}/submit",
     summary="Submit claim for review",
     description="Move a draft claim to SUBMITTED status.",
+    dependencies=[Depends(require_role(UserRole.CLINICIAN, UserRole.NURSE, UserRole.ADMIN))],
 )
 async def submit_claim(claim_id: str):
     """Submit a claim."""
@@ -106,6 +113,7 @@ async def submit_claim(claim_id: str):
     "/claims/{claim_id}/status",
     summary="Update claim status",
     description="Update claim status with optional financial adjustments.",
+    dependencies=[Depends(require_role(UserRole.CLINICIAN, UserRole.NURSE, UserRole.ADMIN))],
 )
 async def update_claim_status(claim_id: str, update: ClaimStatusUpdate):
     """Update claim status."""
@@ -134,6 +142,7 @@ async def update_claim_status(claim_id: str, update: ClaimStatusUpdate):
     "/claims/{claim_id}/settle",
     summary="Settle claim",
     description="Mark a claim as settled (payment received).",
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
 )
 async def settle_claim(claim_id: str):
     """Settle a claim."""
@@ -147,6 +156,7 @@ async def settle_claim(claim_id: str):
     "/claims/{claim_id}/void",
     summary="Void claim",
     description="Void a claim (cancel before settlement).",
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
 )
 async def void_claim(claim_id: str):
     """Void a claim."""

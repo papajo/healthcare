@@ -475,6 +475,24 @@ class TestFHIRAPI:
         seed_demo_data()
         self.client = TestClient(app)
 
+        # Ensure admin user exists for auth
+        from src.services.auth_service import auth_service
+        from src.models.auth import UserCreate, UserRole
+
+        existing = {u.username for u in auth_service.list_users()}
+        if "testfhiradmin" not in existing:
+            auth_service.register(
+                UserCreate(
+                    username="testfhiradmin",
+                    email="testfhiradmin@test.example",
+                    password="testfhiradmin123",
+                    full_name="Test FHIR Admin",
+                    role=UserRole.ADMIN,
+                )
+            )
+        tokens = auth_service.login("testfhiradmin", "testfhiradmin123")
+        self.headers = {"Authorization": f"Bearer {tokens.access_token}"}
+
     def test_capability_statement(self):
         resp = self.client.get("/fhir/metadata")
         assert resp.status_code == 200
@@ -489,6 +507,7 @@ class TestFHIRAPI:
         resp = self.client.post(
             "/fhir/Patient",
             json=_make_patient_dict(),
+            headers=self.headers,
         )
         assert resp.status_code == 201
         assert resp.headers["content-type"] == "application/fhir+json"
@@ -498,41 +517,80 @@ class TestFHIRAPI:
         assert data["id"] is not None
 
     def test_read_patient(self):
-        create_resp = self.client.post("/fhir/Patient", json=_make_patient_dict())
+        create_resp = self.client.post(
+            "/fhir/Patient",
+            json=_make_patient_dict(),
+            headers=self.headers,
+        )
         patient_id = create_resp.json()["id"]
 
-        resp = self.client.get(f"/fhir/Patient/{patient_id}")
+        resp = self.client.get(
+            f"/fhir/Patient/{patient_id}",
+            headers=self.headers,
+        )
         assert resp.status_code == 200
         assert resp.json()["id"] == patient_id
 
     def test_read_patient_not_found(self):
-        resp = self.client.get("/fhir/Patient/nonexistent")
+        resp = self.client.get(
+            "/fhir/Patient/nonexistent",
+            headers=self.headers,
+        )
         assert resp.status_code == 404
 
     def test_update_patient(self):
-        create_resp = self.client.post("/fhir/Patient", json=_make_patient_dict())
+        create_resp = self.client.post(
+            "/fhir/Patient",
+            json=_make_patient_dict(),
+            headers=self.headers,
+        )
         patient_id = create_resp.json()["id"]
 
         updated = _make_patient_dict(gender="male")
-        resp = self.client.put(f"/fhir/Patient/{patient_id}", json=updated)
+        resp = self.client.put(
+            f"/fhir/Patient/{patient_id}",
+            json=updated,
+            headers=self.headers,
+        )
         assert resp.status_code == 200
         assert resp.json()["gender"] == "male"
 
     def test_delete_patient(self):
-        create_resp = self.client.post("/fhir/Patient", json=_make_patient_dict())
+        create_resp = self.client.post(
+            "/fhir/Patient",
+            json=_make_patient_dict(),
+            headers=self.headers,
+        )
         patient_id = create_resp.json()["id"]
 
-        resp = self.client.delete(f"/fhir/Patient/{patient_id}")
+        resp = self.client.delete(
+            f"/fhir/Patient/{patient_id}",
+            headers=self.headers,
+        )
         assert resp.status_code == 204
 
-        read_resp = self.client.get(f"/fhir/Patient/{patient_id}")
+        read_resp = self.client.get(
+            f"/fhir/Patient/{patient_id}",
+            headers=self.headers,
+        )
         assert read_resp.status_code == 404
 
     def test_search_patients(self):
-        self.client.post("/fhir/Patient", json=_make_patient_dict())
-        self.client.post("/fhir/Patient", json=_make_patient_dict())
+        self.client.post(
+            "/fhir/Patient",
+            json=_make_patient_dict(),
+            headers=self.headers,
+        )
+        self.client.post(
+            "/fhir/Patient",
+            json=_make_patient_dict(),
+            headers=self.headers,
+        )
 
-        resp = self.client.get("/fhir/Patient")
+        resp = self.client.get(
+            "/fhir/Patient",
+            headers=self.headers,
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["resourceType"] == "Bundle"
@@ -542,6 +600,7 @@ class TestFHIRAPI:
         resp = self.client.post(
             "/fhir/Encounter",
             json=_make_encounter_dict(),
+            headers=self.headers,
         )
         assert resp.status_code == 201
         data = resp.json()
@@ -551,25 +610,38 @@ class TestFHIRAPI:
         self.client.post(
             "/fhir/Encounter",
             json=_make_encounter_dict(status="planned"),
+            headers=self.headers,
         )
         self.client.post(
             "/fhir/Encounter",
             json=_make_encounter_dict(status="finished"),
+            headers=self.headers,
         )
-        resp = self.client.get("/fhir/Encounter?status=planned")
+        resp = self.client.get(
+            "/fhir/Encounter?status=planned",
+            headers=self.headers,
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 2  # 1 seeded + 1 created above
 
     def test_search_by_patient(self):
-        p_resp = self.client.post("/fhir/Patient", json=_make_patient_dict())
+        p_resp = self.client.post(
+            "/fhir/Patient",
+            json=_make_patient_dict(),
+            headers=self.headers,
+        )
         patient_id = p_resp.json()["id"]
         self.client.post(
             "/fhir/Encounter",
             json=_make_encounter_dict(patient_id=patient_id),
+            headers=self.headers,
         )
 
-        resp = self.client.get(f"/fhir/Encounter?patient=Patient/{patient_id}")
+        resp = self.client.get(
+            f"/fhir/Encounter?patient=Patient/{patient_id}",
+            headers=self.headers,
+        )
         assert resp.status_code == 200
         assert resp.json()["total"] == 1
 
@@ -577,22 +649,34 @@ class TestFHIRAPI:
         resp = self.client.post(
             "/fhir/Patient",
             json={"resourceType": "Patient", "gender": "female"},
+            headers=self.headers,
         )
         assert resp.status_code == 422
 
     def test_unsupported_resource_type(self):
-        resp = self.client.get("/fhir/Alien")
+        resp = self.client.get(
+            "/fhir/Alien",
+            headers=self.headers,
+        )
         assert resp.status_code == 404
 
     def test_everything(self):
-        p_resp = self.client.post("/fhir/Patient", json=_make_patient_dict())
+        p_resp = self.client.post(
+            "/fhir/Patient",
+            json=_make_patient_dict(),
+            headers=self.headers,
+        )
         patient_id = p_resp.json()["id"]
         self.client.post(
             "/fhir/Encounter",
             json=_make_encounter_dict(patient_id=patient_id),
+            headers=self.headers,
         )
 
-        resp = self.client.get(f"/fhir/Patient/{patient_id}/$everything")
+        resp = self.client.get(
+            f"/fhir/Patient/{patient_id}/$everything",
+            headers=self.headers,
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["resourceType"] == "Bundle"
@@ -600,18 +684,31 @@ class TestFHIRAPI:
         assert data["total"] >= 2  # patient + at least 1 encounter
 
     def test_everything_patient_not_found(self):
-        resp = self.client.get("/fhir/Patient/nonexistent/$everything")
+        resp = self.client.get(
+            "/fhir/Patient/nonexistent/$everything",
+            headers=self.headers,
+        )
         assert resp.status_code == 404
 
     def test_delete_nonexistent(self):
-        resp = self.client.delete("/fhir/Patient/nonexistent")
+        resp = self.client.delete(
+            "/fhir/Patient/nonexistent",
+            headers=self.headers,
+        )
         assert resp.status_code == 404
 
     def test_search_with_count_and_offset(self):
         for _ in range(5):
-            self.client.post("/fhir/Patient", json=_make_patient_dict())
+            self.client.post(
+                "/fhir/Patient",
+                json=_make_patient_dict(),
+                headers=self.headers,
+            )
 
-        resp = self.client.get("/fhir/Patient?_count=2&_offset=0")
+        resp = self.client.get(
+            "/fhir/Patient?_count=2&_offset=0",
+            headers=self.headers,
+        )
         data = resp.json()
         assert len(data["entry"]) == 2
         assert data["total"] >= 5
@@ -626,6 +723,7 @@ class TestFHIRAPI:
                 "provider": {"reference": "Organization/o-1"},
                 "total": {"value": 100.0, "currency": "USD"},
             },
+            headers=self.headers,
         )
         assert resp.status_code == 201
 
@@ -639,6 +737,7 @@ class TestFHIRAPI:
                 "subject": {"reference": "Patient/p-1"},
                 "valueQuantity": {"value": 72, "unit": "beats/min"},
             },
+            headers=self.headers,
         )
         assert resp.status_code == 201
 
@@ -650,5 +749,6 @@ class TestFHIRAPI:
                 "subject": {"reference": "Patient/p-1"},
                 "clinicalStatus": {"code": "active"},
             },
+            headers=self.headers,
         )
         assert resp.status_code == 201

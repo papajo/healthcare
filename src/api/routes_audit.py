@@ -1,7 +1,9 @@
 """Audit Ledger API routes — F-06."""
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
+from src.api.deps import require_role
+from src.models.auth import UserRole
 from src.models.domain import AuditEventType, EntityType
 from src.services.audit_ledger import audit_ledger
 
@@ -11,7 +13,8 @@ router = APIRouter()
 @router.get(
     "/audit/events",
     summary="Query audit events",
-    description="Query audit events with optional filters.",
+    description="Query audit events with optional filters (admin/system only).",
+    dependencies=[Depends(require_role(UserRole.ADMIN, UserRole.SYSTEM))],
 )
 async def query_events(
     event_type: AuditEventType | None = Query(None, description="Filter by event type"),
@@ -37,7 +40,8 @@ async def query_events(
 @router.get(
     "/audit/events/{event_id}",
     summary="Get audit event",
-    description="Get a single audit event by ID.",
+    description="Get a single audit event by ID (admin/system only).",
+    dependencies=[Depends(require_role(UserRole.ADMIN, UserRole.SYSTEM))],
 )
 async def get_event(event_id: str):
     """Get audit event by ID."""
@@ -50,7 +54,8 @@ async def get_event(event_id: str):
 @router.get(
     "/audit/verify",
     summary="Verify audit chain integrity",
-    description="Verify the integrity of the audit event chain.",
+    description="Verify the integrity of the audit event chain (admin/system only).",
+    dependencies=[Depends(require_role(UserRole.ADMIN, UserRole.SYSTEM))],
 )
 async def verify_integrity():
     """Verify audit chain integrity."""

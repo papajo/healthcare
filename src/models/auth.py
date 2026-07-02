@@ -98,6 +98,8 @@ class UserCreate(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     full_name: str = Field(min_length=1, max_length=128)
     role: UserRole = UserRole.CLINICIAN
+    fhir_patient_id: str | None = None  # required for PATIENT role
+    assigned_patient_ids: list[str] = []  # for CLINICIAN/NURSE roles
 
 
 class UserResponse(BaseModel):
@@ -110,6 +112,8 @@ class UserResponse(BaseModel):
     role: UserRole
     created_at: datetime
     is_active: bool
+    fhir_patient_id: str | None = None
+    assigned_patient_ids: list[str] = []
 
 
 class TokenResponse(BaseModel):
@@ -161,3 +165,7 @@ class UserRecord(BaseModel):
     created_at: datetime
     is_active: bool = True
     refresh_token_jti: str | None = None
+    # Patient ↔ FHIR Patient resource linking
+    fhir_patient_id: str | None = None  # set for PATIENT role users
+    # Doctor assignments — list of FHIR Patient IDs this clinician can access
+    assigned_patient_ids: list[str] = []

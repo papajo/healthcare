@@ -1,7 +1,9 @@
 """F-01 Urgency Classifier API routes."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from src.api.deps import require_role
+from src.models.auth import UserRole
 from src.models.domain import ActorType, AuditEventType, EntityType
 from src.models.f04_request import F04EncounterRequest
 from src.services.audit_ledger import audit_ledger
@@ -24,6 +26,7 @@ _classifier = UrgencyClassifier()
         "Classifies an encounter into CRITICAL, URGENT, or ROUTINE urgency. "
         "Uses hybrid rule-based + LLM approach with <150ms p99 latency."
     ),
+    dependencies=[Depends(require_role(UserRole.CLINICIAN, UserRole.NURSE, UserRole.ADMIN, UserRole.SYSTEM))],
 )
 async def classify_urgency(request: F04EncounterRequest):
     """Classify encounter urgency level."""

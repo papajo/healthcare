@@ -82,7 +82,10 @@ export default function PatientListPage() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch('/fhir/Patient?_count=100');
+        const token = localStorage.getItem('cco_access_token');
+        const res = await fetch('/fhir/Patient?_count=100', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const bundle: FhirBundle = await res.json();
         setPatients(bundle.entry?.map((e) => e.resource) || []);
