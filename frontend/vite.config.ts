@@ -19,6 +19,14 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
+      '/fhir': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/cds': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
     },
   },
 })

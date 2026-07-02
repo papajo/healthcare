@@ -19,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.api.routes_affordability import router as affordability_router
 from src.api.routes_audit import router as audit_router
 from src.api.routes_auth import router as auth_router
+from src.api.routes_cds import router as cds_router
 from src.api.routes_claims import router as claims_router
 from src.api.routes_fhir import router as fhir_router
 from src.api.routes_subsidy import router as subsidy_router
@@ -74,6 +75,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("Failed to seed FHIR data: %s", e)
 
+    try:
+        from src.services.clinical_seed import seed_clinical_data
+
+        seed_clinical_data()
+        logger.info("Clinical demo data seeded")
+    except Exception as e:
+        logger.warning("Failed to seed clinical data: %s", e)
+
     yield
 
     # Teardown
@@ -116,6 +125,7 @@ app.include_router(claims_router, prefix="/v1", tags=["claims"])
 app.include_router(audit_router, prefix="/v1", tags=["audit"])
 app.include_router(auth_router)
 app.include_router(fhir_router, prefix="/fhir", tags=["fhir"])
+app.include_router(cds_router, prefix="/cds", tags=["cds-hooks"])
 
 
 # ─── Health & Readiness ──────────────────────────────────────────────────────
