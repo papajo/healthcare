@@ -202,3 +202,107 @@ export async function voidClaim(claimId: string): Promise<Claim> {
     method: 'POST',
   });
 }
+
+// ─── Consent ─────────────────────────────────────────────────────────────────
+
+export interface ConsentRecord {
+  consent_id: string;
+  patient_id: string;
+  category: string;
+  status: string;
+  granted_to: string[];
+  granted_by: string;
+  created_at: string;
+  expires_at: string | null;
+  revoked_at: string | null;
+  scope_note: string | null;
+}
+
+export async function listConsents(params?: {
+  patient_id?: string;
+  category?: string;
+  include_expired?: boolean;
+}): Promise<ConsentRecord[]> {
+  const query = new URLSearchParams();
+  if (params?.patient_id) query.set('patient_id', params.patient_id);
+  if (params?.category) query.set('category', params.category);
+  if (params?.include_expired) query.set('include_expired', 'true');
+
+  return fetchJson<ConsentRecord[]>(
+    `${API_BASE}/consent?${query.toString()}`
+  );
+}
+
+export async function grantConsent(params: {
+  patient_id: string;
+  category: string;
+  granted_to?: string[];
+  expires_at?: string;
+}): Promise<ConsentRecord> {
+  return fetchJson<ConsentRecord>(`${API_BASE}/consent`, {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
+export async function revokeConsent(
+  consentId: string,
+  reason?: string
+): Promise<ConsentRecord> {
+  return fetchJson<ConsentRecord>(
+    `${API_BASE}/consent/${consentId}/revoke`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ reason: reason || 'User revoked' }),
+    }
+  );
+}
+
+export async function checkConsent(params: {
+  patient_id: string;
+  category: string;
+  actor_id?: string;
+}): Promise<{ consent_valid: boolean }> {
+  const query = new URLSearchParams();
+  query.set('patient_id', params.patient_id);
+  query.set('category', params.category);
+  if (params.actor_id) query.set('actor_id', params.actor_id);
+
+  return fetchJson<{ consent_valid: boolean }>(
+    `${API_BASE}/consent/check?${query.toString()}`
+  );
+}
+
+// ─── Subsidy Programs ───────────────────────────────────────────────────────
+
+export interface SubsidyProgram {
+  program_id: string;
+  name: string;
+  source: string;
+  min_income_fpl_percent: number;
+  max_income_fpl_percent: number;
+  max_assistance_usd: number;
+  priority: number;
+  description: string;
+}
+
+export async function listSubsidyPrograms(params?: {
+  source?: string;
+}): Promise<{ programs: SubsidyProgram[]; total: number }> {
+  const query = new URLSearchParams();
+  if (params?.source) query.set('source', params.source);
+
+  return fetchJson<{ programs: SubsidyProgram[]; total: number }>(
+    `${API_BASE}/subsidies/programs?${query.toString()}`
+  );
+}
+
+// ─── Metrics ─────────────────────────────────────────────────────────────────
+
+export async function getMetrics(): Promise<{
+  audit_events_total: number;
+  fhir_resources: Record<string, number>;
+  timestamp: string;
+}> {
+  return fetchJson('/v1/metrics');
+}

@@ -92,6 +92,68 @@ MIGRATIONS = [
             ON subsidy_records (subsidy_status);
         """,
     ),
+    (
+        5,
+        "Create consent_records table",
+        """
+        CREATE TABLE IF NOT EXISTS consent_records (
+            id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            consent_id          VARCHAR(64) UNIQUE NOT NULL,
+            patient_id          VARCHAR(128) NOT NULL,
+            category            VARCHAR(32) NOT NULL,
+            status              VARCHAR(16) NOT NULL DEFAULT 'VALID',
+            granted_to          JSONB NOT NULL DEFAULT '[]',
+            granted_by          VARCHAR(128) NOT NULL,
+            created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            expires_at          TIMESTAMPTZ,
+            revoked_at          TIMESTAMPTZ,
+            scope_note          VARCHAR(512)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_consent_patient
+            ON consent_records (patient_id);
+        CREATE INDEX IF NOT EXISTS idx_consent_category
+            ON consent_records (category);
+        CREATE INDEX IF NOT EXISTS idx_consent_status
+            ON consent_records (status);
+        """,
+    ),
+    (
+        6,
+        "Create claims table",
+        """
+        CREATE TABLE IF NOT EXISTS claims (
+            id                          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            claim_id                    VARCHAR(64) UNIQUE NOT NULL,
+            encounter_id                VARCHAR(64) NOT NULL,
+            patient_pseudo_id           VARCHAR(64) NOT NULL,
+            provider_org_id             VARCHAR(64) NOT NULL,
+            payer_id                    VARCHAR(64) NOT NULL,
+            claim_type                  VARCHAR(32) NOT NULL DEFAULT 'PROFESSIONAL',
+            claim_status                VARCHAR(32) NOT NULL DEFAULT 'DRAFT',
+            service_date                DATE NOT NULL,
+            line_items                  JSONB NOT NULL DEFAULT '[]',
+            diagnosis_codes             JSONB NOT NULL DEFAULT '[]',
+            total_charged_cents         BIGINT NOT NULL DEFAULT 0,
+            insurance_responsibility_cents BIGINT NOT NULL DEFAULT 0,
+            patient_responsibility_cents BIGINT NOT NULL DEFAULT 0,
+            subsidy_applied_cents       BIGINT NOT NULL DEFAULT 0,
+            notes                       VARCHAR(1024),
+            created_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            settled_at                  TIMESTAMPTZ
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_claims_patient
+            ON claims (patient_pseudo_id);
+        CREATE INDEX IF NOT EXISTS idx_claims_encounter
+            ON claims (encounter_id);
+        CREATE INDEX IF NOT EXISTS idx_claims_status
+            ON claims (claim_status);
+        CREATE INDEX IF NOT EXISTS idx_claims_payer
+            ON claims (payer_id);
+        """,
+    ),
 ]
 
 

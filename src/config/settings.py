@@ -21,6 +21,7 @@ class Settings(BaseSettings):
 
     # Audit ledger
     audit_enabled: bool = True
+    audit_signing_key: str = "dev-audit-signing-key-change-in-prod"
 
     # PostgreSQL
     db_host: str = "localhost"

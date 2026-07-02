@@ -22,6 +22,9 @@ SUPPORTED_RESOURCE_TYPES = frozenset({
     "AllergyIntolerance",
     "Observation",
     "Claim",
+    "Organization",
+    "Coverage",
+    "DiagnosticReport",
 })
 
 

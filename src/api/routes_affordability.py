@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from src.api.deps import require_role
+from src.api.deps import PatientScopeDep, require_role
 from src.models.auth import UserRole
 from src.models.domain import (
     ActorType,
@@ -49,3 +49,46 @@ async def calculate(request: AffordabilityCalculationRequest):
     )
 
     return result
+
+
+@router.get(
+    "/affordability/{patient_id}",
+    summary="Get patient affordability assessment",
+    description="Retrieve the latest affordability assessment for a patient.",
+)
+async def get_patient_affordability(
+    patient_id: str,
+    scope: PatientScopeDep,
+):
+    """Get affordability for a specific patient."""
+    if not scope.can_access(patient_id):
+        raise HTTPException(status_code=403, detail="Access denied to this patient")
+
+    # Search for the most recent affordability calculation in audit events
+    from src.models.domain import AuditEventType
+
+    events, total = audit_ledger.query_events(
+        event_type=AuditEventType.AFFORDABILITY_DECISION_COMPUTED,
+        entity_id=None,
+        limit=100,
+    )
+
+    # Find events for this patient
+    patient_events = [
+        e for e in events
+        if e.payload.get("patient_pseudo_id") == patient_id
+    ]
+
+    if not patient_events:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No affordability assessment found for patient {patient_id}",
+        )
+
+    # Return the most recent
+    latest = patient_events[-1]
+    return {
+        "patient_id": patient_id,
+        "assessment": latest.payload,
+        "computed_at": latest.event_timestamp.isoformat(),
+    }

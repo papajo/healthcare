@@ -263,3 +263,106 @@ class FHIROperationOutcome(BaseModel):
     id: str | None = None
     meta: FHIRMeta = Field(default_factory=FHIRMeta)
     issue: list[FHIROperationOutcomeIssue] = Field(default_factory=list)
+
+
+# ─── FHIR Organization ───────────────────────────────────────────────────────
+
+
+class FHIROrganizationContact(BaseModel):
+    """Contact information for an organization."""
+
+    purpose: FHIRCoding | None = None
+    name: FHIRHumanName | None = None
+    telecom: list[FHIRContactPoint] = Field(default_factory=list)
+    address: FHIRAddress | None = None
+
+
+class FHIROrganization(BaseModel):
+    """FHIR R4 Organization resource — provider, hospital, or payer entity."""
+
+    model_config = _MODEL_CONFIG
+
+    resource_type: Literal["Organization"] = Field(
+        default="Organization",
+        serialization_alias="resourceType",
+    )
+    id: str | None = None
+    meta: FHIRMeta = Field(default_factory=FHIRMeta)
+    identifier: list[FHIRIdentifier] = Field(default_factory=list)
+    active: bool = True
+    type: list[FHIRCoding] = Field(default_factory=list)
+    name: str | None = None
+    alias: list[str] = Field(default_factory=list)
+    telecom: list[FHIRContactPoint] = Field(default_factory=list)
+    address: list[FHIRAddress] = Field(default_factory=list)
+    contact: list[FHIROrganizationContact] = Field(default_factory=list)
+
+
+# ─── FHIR Coverage ───────────────────────────────────────────────────────────
+
+
+class FHIRCoverageClass(BaseModel):
+    """Type of cost sharing for the coverage."""
+
+    type: FHIRCoding | None = None
+    value: str | None = None
+
+
+class FHIRCoveragePayor(FHIRReference):
+    """Reference to the organization providing coverage."""
+
+    pass
+
+
+class FHIRCoverage(BaseModel):
+    """FHIR R4 Coverage resource — insurance plan details."""
+
+    model_config = _MODEL_CONFIG
+
+    resource_type: Literal["Coverage"] = Field(
+        default="Coverage",
+        serialization_alias="resourceType",
+    )
+    id: str | None = None
+    meta: FHIRMeta = Field(default_factory=FHIRMeta)
+    identifier: list[FHIRIdentifier] = Field(default_factory=list)
+    status: str = "active"
+    type: FHIRCoding | None = None
+    beneficiary: FHIRReference = Field(default_factory=FHIRReference)
+    period: FHIRPeriod = Field(default_factory=FHIRPeriod)
+    payor: list[FHIRCoveragePayor] = Field(default_factory=list)
+    class_: FHIRCoverageClass | None = Field(
+        default=None,
+        serialization_alias="class",
+    )
+    network: str | None = None
+    order: int | None = None
+    typeOfBenefit: list[FHIRCoding] = Field(default_factory=list)
+
+
+# ─── FHIR DiagnosticReport ──────────────────────────────────────────────────
+
+
+class FHIRDiagnosticReport(BaseModel):
+    """FHIR R4 DiagnosticReport resource — lab reports, imaging results."""
+
+    model_config = _MODEL_CONFIG
+
+    resource_type: Literal["DiagnosticReport"] = Field(
+        default="DiagnosticReport",
+        serialization_alias="resourceType",
+    )
+    id: str | None = None
+    meta: FHIRMeta = Field(default_factory=FHIRMeta)
+    identifier: list[FHIRIdentifier] = Field(default_factory=list)
+    status: str = "final"
+    category: list[FHIRCoding] = Field(default_factory=list)
+    code: FHIRCoding = Field(default_factory=FHIRCoding)
+    subject: FHIRReference = Field(default_factory=FHIRReference)
+    encounter: FHIRReference | None = None
+    effectiveDateTime: datetime | None = None
+    issued: datetime | None = None
+    performer: list[FHIRReference] = Field(default_factory=list)
+    result: list[FHIRReference] = Field(default_factory=list)
+    conclusion: str | None = None
+    conclusionCode: list[FHIRCoding] = Field(default_factory=list)

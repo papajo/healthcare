@@ -7,6 +7,8 @@ import Dashboard from './pages/Dashboard';
 import PatientListPage from './pages/PatientListPage';
 import PatientChart from './pages/PatientChart';
 import ClaimsPage from './pages/ClaimsPage';
+import ConsentPage from './pages/ConsentPage';
+import SubsidyProgramsPage from './pages/SubsidyProgramsPage';
 import AuditPage from './pages/AuditPage';
 import SettingsPage from './pages/SettingsPage';
 import type { ReactNode } from 'react';
@@ -81,6 +83,22 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ClaimsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/consent"
+        element={
+          <ProtectedRoute>
+            <ConsentPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/subsidies"
+        element={
+          <ProtectedRoute>
+            <SubsidyProgramsPage />
           </ProtectedRoute>
         }
       />

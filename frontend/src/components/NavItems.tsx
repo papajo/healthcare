@@ -3,6 +3,8 @@ import {
   Users,
   FileText,
   Shield,
+  Heart,
+  DollarSign,
   Settings,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -19,6 +21,18 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/patients', label: 'Patients', icon: Users, minRole: ['ADMIN', 'CLINICIAN', 'NURSE'] },
   { path: '/claims', label: 'Claims', icon: FileText, minRole: ['ADMIN', 'CLINICIAN', 'NURSE'] },
+  {
+    path: '/consent',
+    label: 'Consent',
+    icon: Heart,
+    minRole: ['ADMIN', 'CLINICIAN', 'NURSE', 'PATIENT'],
+  },
+  {
+    path: '/subsidies',
+    label: 'Programs',
+    icon: DollarSign,
+    minRole: ['ADMIN', 'CLINICIAN', 'NURSE', 'PATIENT'],
+  },
   {
     path: '/audit',
     label: 'Audit',

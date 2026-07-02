@@ -1,4 +1,4 @@
-"""FastAPI dependencies for authentication and authorization."""
+"""FastAPI dependencies for authentication, authorization, and consent validation."""
 
 from __future__ import annotations
 
@@ -140,3 +140,45 @@ async def get_patient_scope(user: CurrentUser) -> PatientScope:
 
 
 PatientScopeDep = Annotated[PatientScope, Depends(get_patient_scope)]
+
+
+# ─── Consent validation dependency ─────────────────────────────────────────
+
+
+def require_consent(*categories: str):
+    """Dependency factory: raises 403 if the patient lacks consent for the given data categories.
+
+    Usage in routes::
+
+        @router.post(
+            "/some-endpoint",
+            dependencies=[Depends(require_consent("CLINICAL", "FINANCIAL"))],
+        )
+        async def endpoint(patient_id: str, scope: PatientScopeDep):
+            ...
+    """
+
+    async def _check(
+        patient_id: str,
+        scope: PatientScopeDep,
+    ) -> PatientScope:
+        from src.models.consent import DataCategory
+        from src.services.consent_service import consent_service
+
+        actor_id = scope.user.user_id
+        for cat_str in categories:
+            try:
+                cat = DataCategory(cat_str)
+            except ValueError:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Invalid consent category: {cat_str}",
+                )
+            if not consent_service.has_valid_consent(patient_id, cat, actor_id):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Missing consent for category: {cat.value}",
+                )
+        return scope
+
+    return _check
