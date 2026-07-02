@@ -8,7 +8,6 @@ import {
   RefreshCw,
   AlertTriangle,
   CheckCircle,
-  ExternalLink,
 } from 'lucide-react';
 import { listSubsidyPrograms } from '../api/client';
 import type { SubsidyProgram } from '../api/client';
