@@ -41,12 +41,12 @@ async def grant_consent(request: ConsentCreateRequest, user: CurrentUser):
                 detail="Patients can only grant consent for themselves",
             )
 
-    record = consent_service.grant(request, granted_by=user.user_id)
+    record = consent_service.grant(request, granted_by=str(user.user_id))
 
     audit_ledger.write_event(
         event_type="CONSENT_GRANTED",
         actor_type="PATIENT_APP" if user.role == UserRole.PATIENT else "PROVIDER_EHR",
-        actor_id=user.user_id,
+        actor_id=str(user.user_id),
         entity_type="PATIENT",
         entity_id=request.patient_id,
         payload={
@@ -109,7 +109,7 @@ async def revoke_consent(
     user: CurrentUser,
 ):
     try:
-        record = consent_service.revoke(consent_id, user.user_id, request)
+        record = consent_service.revoke(consent_id, str(user.user_id), request)
     except KeyError:
         raise HTTPException(status_code=404, detail="Consent not found")
     except ValueError as exc:
@@ -123,7 +123,7 @@ async def revoke_consent(
     audit_ledger.write_event(
         event_type="CONSENT_REVOKED",
         actor_type="PATIENT_APP" if user.role == UserRole.PATIENT else "PROVIDER_EHR",
-        actor_id=user.user_id,
+        actor_id=str(user.user_id),
         entity_type="PATIENT",
         entity_id=record.patient_id,
         payload={
@@ -142,9 +142,9 @@ async def revoke_consent(
     description="Check if valid consent exists for a patient/category combination.",
 )
 async def check_consent(
-    patient_id: str,
-    category: DataCategory,
     user: CurrentUser,
+    patient_id: str = Query(...),
+    category: DataCategory = Query(...),
     actor_id: str | None = Query(default=None),
 ):
     valid = consent_service.has_valid_consent(patient_id, category, actor_id)

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import jwt
 from passlib.context import CryptContext
@@ -35,7 +35,7 @@ class AuthService:
         self._users: dict[str, UserRecord] = {}
         self._blacklisted_refresh: set[str] = set()
 
-    def register(self, user: UserCreate) -> UserRecord:
+    def register(self, user: UserCreate, user_id: UUID | None = None) -> UserRecord:
         """Register a new user. Raises ValueError on duplicate username/email."""
         # Check duplicates
         for existing in self._users.values():
@@ -46,7 +46,7 @@ class AuthService:
 
         now = datetime.now(UTC)
         record = UserRecord(
-            user_id=uuid4(),
+            user_id=user_id or uuid4(),
             username=user.username,
             email=user.email,
             hashed_password=pwd_context.hash(user.password),

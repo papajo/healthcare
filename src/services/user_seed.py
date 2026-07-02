@@ -7,16 +7,26 @@ Creates one user per role:
 - patient (password: patient123) — linked to clinical-patient-002
 
 All passwords meet the 8-char minimum and use bcrypt hashing.
+User IDs are deterministic so tokens survive server restarts.
 """
 
 from __future__ import annotations
 
 import logging
+from uuid import UUID
 
 from src.models.auth import UserCreate, UserRole
 from src.services.auth_service import auth_service
 
 logger = logging.getLogger(__name__)
+
+# Deterministic UUIDs for demo users — tokens survive --reload restarts
+_DEMO_IDS: dict[str, UUID] = {
+    "admin": UUID("00000000-0000-0000-0000-000000000001"),
+    "doctor": UUID("00000000-0000-0000-0000-000000000002"),
+    "nurse": UUID("00000000-0000-0000-0000-000000000003"),
+    "patient": UUID("00000000-0000-0000-0000-000000000004"),
+}
 
 
 def seed_users() -> None:
@@ -65,7 +75,8 @@ def seed_users() -> None:
 
     for user in users:
         try:
-            auth_service.register(user)
+            user_id = _DEMO_IDS.get(user.username)
+            auth_service.register(user, user_id=user_id)
             logger.info("Seeded user: %s (%s)", user.username, user.role.value)
         except ValueError:
             logger.debug("User %s already exists", user.username)
