@@ -1,7 +1,7 @@
 [project]
 name = "crisiscost-orchestrator"
 version = "0.1.0"
-description = "Crisis-Cost Orchestrator — HIPAA-compliant healthcare cost protection platform"
+description = "Crisis-Cost Orchestrator — healthcare cost-protection platform"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115.0",
