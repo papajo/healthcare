@@ -4,7 +4,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-HIPAA-compliant healthcare cost protection platform that eliminates medical bankruptcy by classifying care urgency, capping patient costs at 10% of income, and orchestrating instant provider subsidies.
+Healthcare cost-protection platform designed to prevent medical bankruptcy: it classifies care urgency, caps patient costs at 10% of income, and orchestrates provider subsidies.
 
 ---
 
